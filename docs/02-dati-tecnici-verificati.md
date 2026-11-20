@@ -113,6 +113,9 @@ RULLI
   Dimensioni / peso         18 x 14 mm — 13,0 g — 6 pezzi
 
   LIMITE DI USURA           17,5 mm di diametro  \[DERIV: 18,0 - 0,5\]
+                            (Confermata tolleranza SYM ~0,5-0,6 mm da manuale Jet 14
+                             pag. 8-2: su rullo 16 mm il limite e 15,40 mm; NON usare
+                             15,40 mm sul Symphony 200i che monta rulli da 18 mm!)
 
   Sostituzione              nessun intervallo fisso: pulizia e controllo
 
@@ -266,7 +269,20 @@ Sensori ABS: anello fonico = disco SEPARATO dal disco freno, imbullonato
 
 insieme (5 bulloni 8x24). Sensore OEM 44870-L4C-000.
 
-Anello fonico ant. 45120-XMC-000 / post. 43120-XJE-000
+Anello fonico ant. 45120-XMC-000 / post. 43120-XJE-000 -> 50 FORI \[XB20\]
+
+  (Estratto da Jet 14 Service Manual pag. 13-15, sistema Bosch:
+   45120-XMC-0001 = 50 holes, 43120-XJE-0001 = 50 holes;
+   risoluzione teorica ~3,43 cm/impulso su ruota 110/70-16.
+   ATTENZIONE \[Maxsym pag. 14-15\]: MAI scollegare il connettore
+   centralina ABS con quadro su ON, pena danneggiamento centralina.)
+
+Codici guasto ABS Bosch \[XB20 — Jet 14 pag. 13-15\]:
+  C1043/C1042  sensore ruota ant. (circuito / plausibilita)
+  C1045/C1044  sensore ruota post. (circuito / plausibilita)
+  C1025        deviazione velocita ruote (WSS_GENERIC)
+  C1052/C1053  tensione alimentazione bassa / alta
+  C1055        guasto ECU ABS
 
 Per capire se il sensore e passivo o attivo: misura la resistenza fra i
 

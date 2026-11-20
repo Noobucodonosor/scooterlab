@@ -157,45 +157,26 @@ https://parts.alliancepowersports.com/sym-models/downloads/parts-catalogs-manual
 
 ============================================================
 
-COSA MI SERVE ANCORA — dal file 01 (Jet 14 Service Manual)
+STATO ESTRAZIONE — aggiornato novembre 2026
 
 ============================================================
 
-In ordine di importanza:
+Estratti e verificati dai manuali pubblici 01 (Jet 14) e 13 (Maxsym):
 
+1. \[FATTO\] CAPITOLO V-BELT DRIVING SYSTEM (Jet 14 pag. 8-2 / 8-7):
+   Confermata tolleranza usura rulli SYM ~0,5-0,6 mm sul diametro nominale
+   (nel manuale Jet 14 i rulli sono da 16 mm -> limite 15,40 mm; sul
+   Symphony ST 200i sono da 18 mm -> confermato limite derivato 17,5 mm).
 
-1. CAPITOLO CARENATURE (Body cover removal / Frame cover)
+2. \[FATTO\] CAPITOLO ABS (Jet 14 pag. 13-15 & Maxsym pag. 14-15):
+   Confermati 50 FORI sugli anelli fonici 45120-XMC-000 / 43120-XJE-000
+   (sistema Bosch) + tabella codici guasto C1042-C1055 + avvertenza
+   di non scollegare la centralina ABS a quadro ON.
 
-   -> ordine di rimozione dei pannelli e numero di viti per ciascuno.
-
-   Con questo sostituisco le stime con la procedura ufficiale.
-
-
-2. CAPITOLO V-BELT DRIVING SYSTEM
-
-   -> LIMITE DI USURA DEI RULLI (diametro minimo), masse frizione,
-
-   campana. E l'ultimo dato importante che manca: adesso ho solo una
-
-   derivazione (17,5 mm) da un modello gemello.
-
-
-3. CAPITOLO ABS
-
-   -> tipo di sensore (Hall attivo o induttivo passivo), numero di denti
-
-   dell'anello fonico, traferro. Serve per decidere se derivare da li il
-
-   segnale di velocita invece di incollare i magneti.
-
-
-COME MANDARMELI: apri il PDF, Cmd+P (Mac) o Ctrl+P (Windows), scegli
-
-"Salva come PDF" / "Microsoft Print to PDF" e indica solo l'intervallo di
-
-pagine. Ne esce un file da 1-2 MB. Oppure carica il PDF intero in questa
-
-cartella di Drive: da li riesco a leggerlo.
+3. \[PARZIALE\] CAPITOLO CARENATURE & TIPO SENSORE ABS:
+   Resta da verificare col multimetro sul mezzo reale se il sensore
+   44870-L4C-000 e induttivo passivo (800-2000 ohm) o Hall attivo,
+   e mappare i colori reali dei fili al cruscotto.
 
 
 ScooterLab — agosto 2026
