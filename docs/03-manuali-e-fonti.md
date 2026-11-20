@@ -143,7 +143,7 @@ cartella dopo averli scaricati).
 
 ============================================================
 
-PORTALE UFFICIALE
+PORTALE UFFICIALE & DISEGNI ESPLOSI ESATTI (SYMPHONY ST 200i E4)
 
 ============================================================
 
@@ -152,6 +152,15 @@ I documenti 01-09 vengono dal portale ricambisti ufficiale SYM USA
 (Alliance Powersports), pubblicati in chiaro:
 
 https://parts.alliancepowersports.com/sym-models/downloads/parts-catalogs-manuals/
+
+Esplosi ufficiali microfiche e codici OEM per il modello ESATTO
+(SYM Symphony 200i ST 4T E4 2018-2020 / XB20E2-EU):
+
+- EasyParts.it (esplosi carrozzeria, motore, impianto elettrico, freni):
+  https://www.easyparts.it/Disegni-esplosi/1685/28747/Sym-Symphony-200I-ST-4T-E4-2018-2020-(EU).html
+
+- Bike-Parts-SYM (catalogo ricambi OEM):
+  https://www.bike-parts-sym.com
 
 
 

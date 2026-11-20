@@ -48,9 +48,26 @@ Gioco manopola gas        2 - 6 mm  \[XB20\]
 
 Candela                   NGK CR7HSA — gap 0,6-0,7 mm  \[TUO\]
 
-Batteria                  12V 6Ah sigillata  \[TUO\]
+Compressione cilindro     10,2 +- 0,2 kg/cm2  \[XB20\]
+
+Batteria                  12V 6Ah sigillata (standard YTX7A-BS)  \[TUO\]
 
 Fusibili                  10A x2, 15A x1, 20A x1  \[TUO\]
+
+Impianto ricarica         14,5 +0,5 V @ 2.000 rpm | dispersione < 1 mA  \[XB20\]
+
+Statore (Y-Y)             0,2 - 1,2 ohm  \[XB20\]
+
+Bobina accensione         primario 0,63 +- 0,03 ohm | secondario 5 +- 1,25 kohm  \[XB20\]
+
+Sensore CPS (pickup)      170 - 210 ohm  \[XB20\]
+
+Serbatoio benzina         7,50 L (benzina verde)  \[TUO\]
+
+Dimensioni (L x l x h)    1.995 x 725 x 1.195 mm  \[TUO\]
+
+Lampade                   Faro ant. 12V 35/35W | Posizioni ant. LED |
+                          Frecce 12V 10W | Faro post. 12V 5W/21W  \[TUO\]
 
 
 

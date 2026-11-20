@@ -24,6 +24,9 @@ Progetto di **ingegneria IoT / embedded e telemetria veicolare non invasiva (Liv
 - [Istruzioni di Montaggio (Livello 0 — Fasi A, B, C, C2, D)](./docs/01-istruzioni-montaggio-livello-0.md)
 - [Scheda Dati Tecnici Verificati da Officina](./docs/02-dati-tecnici-verificati.md)
 - [Manuali e Fonti Ufficiali](./docs/03-manuali-e-fonti.md)
+- [Specifica Formato Binario `.slab` v1](./docs/04-formato-slab.md)
+- [Guida Officina, Verifica di Fabbrica & Smontaggio Scocche](./docs/05-guida-officina-manutenzione-smontaggio.md)
+- [BOM Rev. 2 (2026) & Pinout ESP32-S3/C5](./docs/bom-rev2-2026.md)
 - [AGENTS.md — Contesto & Regole per Sviluppatori e Agenti AI](./AGENTS.md)
 
 ## Stack & Competenze
