@@ -1,0 +1,65 @@
+{
+ "note": "Credits for the photographs in this folder: photos.mjs credits prints the footer block for the ones the pages use.",
+ "photos": [
+  {
+   "file": "photo-f131630287-1280.jpg",
+   "files": [
+    "photo-f131630287-500.jpg",
+    "photo-f131630287-960.jpg",
+    "photo-f131630287-1280.jpg"
+   ],
+   "id": "f131630287",
+   "alt": "Printed Circuit Board 9990",
+   "by": "Ashley Pomeroy",
+   "licence": "CC BY 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Printed_Circuit_Board_9990.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f107726384.jpg",
+   "files": [
+    "photo-f107726384-500.jpg",
+    "photo-f107726384-960.jpg",
+    "photo-f107726384.jpg"
+   ],
+   "id": "f107726384",
+   "alt": "Go scooter, go - Flickr - Sérgio Miranda",
+   "by": "Sergio Miranda from Maia, Portugal",
+   "licence": "CC BY 2.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Go_scooter,_go_-_Flickr_-_S%C3%A9rgio_Miranda.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f113714930.jpg",
+   "files": [
+    "photo-f113714930-500.jpg",
+    "photo-f113714930-960.jpg",
+    "photo-f113714930.jpg"
+   ],
+   "id": "f113714930",
+   "alt": "Circuit board after manual etching",
+   "by": "Tinux",
+   "licence": "CC0",
+   "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "page": "https://commons.wikimedia.org/wiki/File:Circuit_board_after_manual_etching.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f80338924.jpg",
+   "files": [
+    "photo-f80338924-500.jpg",
+    "photo-f80338924-960.jpg",
+    "photo-f80338924.jpg"
+   ],
+   "id": "f80338924",
+   "alt": "Oscilloscope front view",
+   "by": "Rashedul Islam Emon",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Oscilloscope_front_view.jpg",
+   "source": "Wikimedia Commons"
+  }
+ ]
+}

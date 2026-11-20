@@ -1,218 +1,361 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-type="product" data-radius="soft" data-ground="sky" data-buttons="pill" data-motion>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ScooterLab — Telemetria IoT ESP32 (SYM Symphony ST 200i)</title>
-  <meta name="description" content="Progetto IoT & hardware design non invasivo Livello 0: ESP32 DevKit, IMU MPU-6050 (I2C), GPS (UART), microSD (SPI) e alimentazione 12V->5V sottochiave.">
-  <meta property="og:title" content="ScooterLab — Telemetria IoT ESP32">
-  <meta property="og:description" content="Architettura hardware, cablaggio IP65, BOM e scheda tecnica verificata per SYM Symphony ST 200i.">
-  <meta property="og:image" content="https://raw.githubusercontent.com/Noobucodonosor/scooterlab/main/docs/preview/social-preview.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <style>
-    :root {
-      --bg: #f6f7f4;
-      --paper: #ffffff;
-      --ink: #15191c;
-      --muted: #5a646e;
-      --line: #dde2e6;
-      --accent: #b45309;
-      --accent-soft: #fef3c7;
-      --slate: #1e293b;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      line-height: 1.5;
-    }
-    header {
-      background: var(--paper);
-      border-bottom: 1px solid var(--line);
-      padding: 18px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky; top: 0; z-index: 10;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 16px; letter-spacing: -0.01em; }
-    .brand-mark {
-      width: 30px; height: 30px; border-radius: 8px;
-      background: var(--slate); color: #fff;
-      display: grid; place-items: center; font-family: ui-monospace, monospace; font-size: 12px;
-    }
-    .hdr-links { display: flex; gap: 16px; align-items: center; font-size: 13px; }
-    .hdr-links a { color: var(--muted); text-decoration: none; font-weight: 600; }
-    .hdr-links a.btn { background: var(--slate); color: #fff; padding: 8px 14px; border-radius: 8px; }
-    main { max-width: 1120px; margin: 0 auto; padding: 36px 28px 64px; }
-    .hero {
-      display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; align-items: center;
-      margin-bottom: 32px;
-    }
-    .eyebrow {
-      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--accent); background: var(--accent-soft);
-      padding: 4px 10px; border-radius: 6px; margin-bottom: 12px;
-    }
-    h1 { font-size: 38px; line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 14px; }
-    .lead { font-size: 16px; color: var(--muted); margin-bottom: 20px; }
-    .specs-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .spec-pill {
-      background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
-    }
-    .spec-pill small { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .spec-pill strong { font-size: 15px; font-family: ui-monospace, monospace; }
-    .diagram-card {
-      background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-    }
-    .diagram-card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
-    .tabs {
-      display: flex; gap: 8px; border-bottom: 1px solid var(--line); margin-bottom: 22px; overflow-x: auto;
-    }
-    .tabs button {
-      background: transparent; border: 0; border-bottom: 2px solid transparent;
-      padding: 12px 16px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer;
-      white-space: nowrap;
-    }
-    .tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
-    .grid-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .card {
-      background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 20px;
-    }
-    .card h4 { font-size: 16px; margin-bottom: 6px; }
-    .card p { font-size: 13.5px; color: var(--muted); }
-    .tag {
-      display: inline-block; font-family: ui-monospace, monospace; font-size: 11px;
-      background: #f1f5f9; color: var(--slate); padding: 2px 8px; border-radius: 6px; margin-bottom: 8px;
-    }
-    table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13.5px; }
-    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); }
-    th { background: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
-    .mono { font-family: ui-monospace, monospace; font-size: 12.5px; }
-    @media (max-width: 860px) {
-      header { padding: 14px 16px; }
-      main { padding: 22px 16px 48px; }
-      .hero, .grid-cards, .specs-bar { grid-template-columns: 1fr; }
-      h1 { font-size: 28px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ScooterLab: telemetria IoT ESP32-S3 per SYM Symphony ST 200i</title>
+<meta name="description" content="Centralina di telemetria IoT non invasiva con ESP32-S3, Smart IMU ST ISM330IS su SPI, formato binario .slab v1 e sicurezza RED/CRA per SYM Symphony ST 200i ABS.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ScooterLab: telemetria IoT ESP32-S3 per SYM Symphony ST 200i">
+<meta property="og:description" content="Architettura hardware 2026, sicurezza NVS/TLS, pipeline C++/Python .slab v1 e dati verificati da officina.">
+<meta property="og:image" content="share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#dfdedb">
+<link rel="canonical" href="https://noobucodonosor.github.io/scooterlab/">
+<meta name="site-kind" content="tech">
+<meta name="page-type" content="product">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400..700&family=JetBrains+Mono:wght@400..500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<link rel="stylesheet" href="assets/diagrams/diagram.css">
+<link rel="stylesheet" href="assets/moments/liquid-type/moment.css">
+<style>
+:root {
+  --p-bg: #dfdedb; --p-surface: #d3d2ce; --p-ink: #26251e; --p-muted: #5a5850;
+  --p-accent: #2456d6; --p-accent-ink: #ffffff; --p-action: #2456d6; --p-action-ink: #ffffff;
+  --p-inv-bg: #26251e; --p-inv-surface: #313029; --p-inv-ink: #dfdedb; --p-inv-muted: #9e9d99;
+  --p-inv-accent: #dfdedb; --p-inv-accent-ink: #26251e; --p-inv-action: #dfdedb; --p-inv-action-ink: #26251e;
+  --font-display: "Host Grotesk", system-ui, sans-serif;
+  --font-text: "Host Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 500;
+  --display-tracking: -0.035em;
+  --display-tracking-xl: -0.04em;
+}
+</style>
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script src="assets/backgrounds/backgrounds.js"></script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/liquid-type/moment.js">
+<style>
+  #hardware .panel { --p-h: 360px; }
+  #sicurezza .panel { --p-h: 260px; }
+  .roadmap-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+  .roadmap-item { display: grid; grid-template-columns: 240px 1fr auto 40px; gap: var(--s-5); align-items: center; padding: var(--s-5) 0; border-bottom: 1px solid rgba(223,222,219,0.2); }
+  .roadmap-item:first-child { border-top: 1px solid rgba(223,222,219,0.2); }
+  .roadmap-item h3 { margin: 0; font-size: var(--t-card); color: var(--p-inv-ink); }
+  .roadmap-item p { margin: 0; font-size: var(--t-body); color: var(--p-inv-ink); }
+  .lvl-tag { display: inline-block; font-family: var(--font-mono); font-size: var(--t-label); color: var(--p-inv-muted); white-space: nowrap; }
+  .lvl-icon { width: 40px; height: 40px; border-radius: var(--r-sm); background: #dfdedb; display: grid; place-items: center; }
+  .lvl-icon img { width: 22px; height: 22px; }
+  @media (max-width: 1023px) {
+    .roadmap-item { grid-template-columns: 1fr 40px; gap: var(--s-3); padding: var(--s-4) 0; }
+    .roadmap-item p, .roadmap-item .lvl-tag { grid-column: 1; }
+  }
+  .stack-icons { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); padding: var(--s-6); height: 100%; align-content: center; }
+  .stack-ic { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); padding: var(--s-3); border-radius: var(--r-sm); background: var(--bg); border: 1px solid var(--line); }
+  .stack-ic img { width: 32px; height: 32px; }
+  .stack-ic span { font-family: var(--font-mono); font-size: var(--t-label); color: var(--ink); }
+  /* Responsive tables (modern-web-guidance: responsive-table) */
+  .table-wrapper { container-type: inline-size; max-inline-size: 100%; }
+  .spec-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t-body); text-align: left; }
+  .spec-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .spec-table th, .spec-table td { padding: var(--s-3) var(--s-3); border-bottom: 1px solid var(--line); vertical-align: top; }
+  .spec-table thead th { font-size: var(--t-label); font-weight: 500; color: var(--muted); padding-top: 0; }
+  .spec-table tbody th { font-weight: 500; color: var(--ink); padding-left: 0; }
+  .spec-table .mono { font-family: var(--font-mono); font-size: var(--t-small); }
+  .officina-photo { position: relative; overflow: hidden; border-radius: var(--r-lg); height: 360px; }
+  .officina-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  @container (width < 520px) {
+    .spec-table, .spec-table thead, .spec-table tbody, .spec-table tr, .spec-table th, .spec-table td { display: block; }
+    .spec-table thead { display: none; }
+    .spec-table tr { padding: var(--s-2) 0; border-bottom: 1px solid var(--line); }
+    .spec-table tbody th { padding: 0 0 var(--s-1); border: 0; font-weight: 600; }
+    .spec-table td { padding: 2px 0; border: 0; }
+    .spec-table td::before { content: attr(data-label) ": "; font-weight: 500; color: var(--muted); }
+  }
+  @media (max-width: 639px) {
+    #hardware .panel { --p-h: 220px; }
+    #sicurezza .panel { --p-h: 190px; }
+    #sicurezza { --hm: 2; }
+    #roadmap { --hm: 2; }
+    .officina-photo { height: 170px; }
+    .spec-table tr { padding: 4px 0; }
+    .spec-table { font-size: 14px; }
+  }
+</style>
 </head>
 <body>
-  <header>
-    <div class="brand"><span class="brand-mark">SL</span>ScooterLab · IoT Livello 0</div>
-    <div class="hdr-links">
-      <a href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/adr/0001-architettura-telemetria-iot-esp32.md" target="_blank" rel="noopener">ADR-0001</a>
-      <a class="btn" href="https://github.com/Noobucodonosor/scooterlab" target="_blank" rel="noopener">Repository GitHub</a>
-    </div>
-  </header>
+<!-- type: product | site-kind: tech | lang: it
+     deal: hero film (without play button — no film asset), palette stone-blueprint (warm stone ground & blueprint blue accent fit hardware engineering schematics), type host, nav nav-cards (nav--tone to keep one primary button style with hero), close close-type, footer footer-dark, rhythm dark-band (ground-inverse for 11.5:1 contrast), buttons pill, mark arc, ground sky
+     moments: liquid-type (#roadmap) -->
 
-  <main>
-    <section class="hero">
-      <div>
-        <span class="eyebrow">IoT / Embedded · SYM Symphony ST 200i</span>
-        <h1>Centralina di telemetria non invasiva su ESP32</h1>
-        <p class="lead">
-          Architettura hardware Livello 0: acquisizione cinematica IMU 6-assi, traccia GPS e logging su microSD
-          con alimentazione veicolare protetta sottochiave. Nessuna carenatura smontata, nessuna interferenza con la ECU.
-        </p>
-        <div class="specs-bar">
-          <div class="spec-pill"><small>MCU &amp; Bus</small><strong>ESP32 · I2C/UART/SPI</strong></div>
-          <div class="spec-pill"><small>Alimentazione</small><strong>12V → 5V (1A Fuse)</strong></div>
-          <div class="spec-pill"><small>Protezione</small><strong>IP65 · Sottochiave</strong></div>
+<header class="nav nav--tone">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">Vai al contenuto</a>
+    <a class="nav__logo" href="#top"><span class="mark" data-mark="arc" aria-hidden="true"></span>ScooterLab</a>
+    <nav class="nav__links" aria-label="Navigazione principale">
+      <div class="nav__item">
+        <a class="nav__link" href="#hardware">Hardware <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <a class="menu-card span-4" href="#hardware">
+              <div class="panel"><img class="frame__img" src="assets/img/photo-f131630287-500.jpg" width="500" height="333" loading="lazy" alt="Scheda elettronica embedded sul banco di prova" data-source="stand-in" data-subject="stand-in"></div>
+              <span class="t-card">Architettura ESP32-S3</span>
+              <span class="t-small muted">Smart IMU SPI, GNSS 10 Hz e CAN</span>
+            </a>
+            <a class="menu-card span-4" href="#sicurezza">
+              <div class="panel"><img class="frame__img" src="assets/img/photo-f113714930-500.jpg" width="500" height="376" loading="lazy" alt="Circuito stampato con piste in rame incise" data-source="stand-in" data-subject="stand-in"></div>
+              <span class="t-card">Firmware e .slab v1</span>
+              <span class="t-small muted">NVS cifrata, HTTPS TLS e CRC32</span>
+            </a>
+            <a class="menu-card span-4" href="#officina">
+              <div class="panel"><img class="frame__img" src="assets/img/photo-f107726384-500.jpg" width="500" height="333" loading="lazy" alt="Scooter urbano parcheggiato su strada cittadina" data-source="stand-in" data-subject="stand-in"></div>
+              <span class="t-card">Officina SYM 200i</span>
+              <span class="t-small muted">Valvole, ricarica e tagliandi</span>
+            </a>
+          </div>
         </div>
       </div>
-
-      <div class="diagram-card">
-        <h3>Schema di Cablaggio &amp; Bus — Livello 0</h3>
-        <svg viewBox="0 0 460 250" width="100%" aria-label="Schema hardware ScooterLab">
-          <rect x="10" y="18" width="115" height="54" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
-          <text x="67" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">12V Sottochiave</text>
-          <text x="67" y="57" text-anchor="middle" font-size="10" fill="#78350f">Fusibile 1A in linea</text>
-
-          <line x1="125" y1="45" x2="165" y2="45" stroke="#b45309" stroke-width="2"/>
-          <rect x="165" y="18" width="118" height="54" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
-          <text x="224" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#1e293b">Buck 12V → 5V</text>
-          <text x="224" y="57" text-anchor="middle" font-size="10" fill="#475569">Tarato a multimetro</text>
-
-          <line x1="224" y1="72" x2="224" y2="108" stroke="#1e293b" stroke-width="2"/>
-          <rect x="148" y="108" width="152" height="58" rx="10" fill="#1e293b"/>
-          <text x="224" y="133" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">ESP32 DevKit</text>
-          <text x="224" y="151" text-anchor="middle" font-size="10" fill="#cbd5e1">Wi-Fi / BLE · Box IP65</text>
-
-          <line x1="175" y1="166" x2="72" y2="195" stroke="#0f766e" stroke-width="1.8"/>
-          <line x1="224" y1="166" x2="224" y2="195" stroke="#1d4ed8" stroke-width="1.8"/>
-          <line x1="273" y1="166" x2="378" y2="195" stroke="#7c3aed" stroke-width="1.8"/>
-
-          <rect x="14" y="195" width="122" height="44" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-width="1.5"/>
-          <text x="75" y="214" text-anchor="middle" font-size="11" font-weight="700" fill="#115e59">IMU MPU-6050</text>
-          <text x="75" y="229" text-anchor="middle" font-size="10" fill="#0f766e">Bus I2C · 6 Assi</text>
-
-          <rect x="163" y="195" width="122" height="44" rx="8" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.5"/>
-          <text x="224" y="214" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">Modulo GPS</text>
-          <text x="224" y="229" text-anchor="middle" font-size="10" fill="#1d4ed8">Bus UART · UTC/Speed</text>
-
-          <rect x="312" y="195" width="134" height="44" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
-          <text x="379" y="214" text-anchor="middle" font-size="11" font-weight="700" fill="#5b21b6">microSD 32 GB</text>
-          <text x="379" y="229" text-anchor="middle" font-size="10" fill="#7c3aed">Bus SPI · Log Offline</text>
-        </svg>
-      </div>
-    </section>
-
-    <div class="tabs" id="tabs">
-      <button class="active" data-tab="phases" type="button">Fasi di Montaggio (A → D)</button>
-      <button data-tab="bom" type="button">Distinta Base (BOM)</button>
-      <button data-tab="specs" type="button">Scheda Officina SYM 200i</button>
+      <div class="nav__item"><a class="nav__link" href="#sicurezza">Firmware</a></div>
+      <div class="nav__item"><a class="nav__link" href="#roadmap">Livelli</a></div>
+      <div class="nav__item"><a class="nav__link" href="#bom">Pinout</a></div>
+      <div class="nav__item"><a class="nav__link" href="#officina">Officina</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary" href="https://github.com/Noobucodonosor/scooterlab">Apri GitHub</a>
     </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
 
-    <div id="tab-root"></div>
-  </main>
+<main id="top">
+  <section class="hero hero--film" data-enter aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text hero__in">
+      <div class="hero__media hero__fill">
+        <img src="assets/img/photo-f131630287-1280.jpg" width="1280" height="853" alt="Circuito stampato embedded fotografato dall'alto sul banco di sviluppo" style="--ly-pos: 50% 45%; --ly-pos-phone: 50% 40%" fetchpriority="high" decoding="async" data-phone-fill data-source="stand-in" data-subject="stand-in">
+        <div class="hero__over">
+          <div>
+            <h1 id="hero-h">ScooterLab per SYM Symphony ST 200i</h1>
+            <p class="hero__lead">Centralina IoT non invasiva con ESP32-S3, Smart IMU ST ISM330IS su SPI, GNSS a 10 Hz e formato .slab v1. Budget 65–85 €.</p>
+            <div class="btn-row">
+              <a class="btn btn--primary" href="https://github.com/Noobucodonosor/scooterlab">Apri GitHub<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+              <a class="btn btn--secondary" href="#bom">Vedi pinout</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </section>
 
-  <script>
-    const views = {
-      phases: `
-        <div class="grid-cards">
-          <div class="card"><span class="tag">FASE A · ~2 ORE</span><h4>Banco &amp; Primo Assemblaggio</h4><p>Setup toolchain, test bus I2C/UART/SPI a banco, verifica letture grezze IMU MPU-6050, fix GPS e scrittura su microSD 32 GB.</p></div>
-          <div class="card"><span class="tag">FASE B · ~30 MIN</span><h4>Rilievo del Vano sul Mezzo</h4><p>Misurazione quote reali, punti di ancoraggio antivibrazione per la IMU e percorso cavi senza smontaggio carenature.</p></div>
-          <div class="card"><span class="tag">FASE C / C2 · ~2 ORE</span><h4>Alimentazione Sottochiave &amp; IP65</h4><p>Taratura convertitore buck 12V→5V al multimetro, installazione fusibile 1A sul positivo sottochiave, assemblaggio in scatola IP65 e prova su strada.</p></div>
-          <div class="card"><span class="tag">FASE D · ROADMAP FIRMWARE</span><h4>Calibrazione, Logging &amp; Report</h4><p>Calibrazione assi IMU a veicolo fermo, registrazione sessione di guida su microSD e pipeline di generazione report (C++ PlatformIO + Python).</p></div>
-        </div>`,
-      bom: `
-        <table>
-          <thead><tr><th>Componente</th><th>Interfaccia / Specifica</th><th>Ruolo nel Sistema</th></tr></thead>
-          <tbody>
-            <tr><td><strong>ESP32 DevKit</strong></td><td class="mono">Wi-Fi / BLE · 3.3V logic</td><td>Microcontrollore principale e acquisizione sensori</td></tr>
-            <tr><td><strong>IMU MPU-6050</strong></td><td class="mono">I2C (SDA / SCL)</td><td>Accelerometro + giroscopio 6 assi (piega, frenata, fondo)</td></tr>
-            <tr><td><strong>Modulo GPS</strong></td><td class="mono">UART (TX / RX)</td><td>Traccia GPS, velocità reale e clock UTC</td></tr>
-            <tr><td><strong>Lettore microSD + 32 GB</strong></td><td class="mono">SPI</td><td>Logging telemetrico continuo resistente a cadute rete</td></tr>
-            <tr><td><strong>Convertitore Buck DC-DC</strong></td><td class="mono">12V–14.4V → 5.0V</td><td>Regolazione pulita da impianto elettrico scooter</td></tr>
-            <tr><td><strong>Fusibile 1 A + Box IP65</strong></td><td class="mono">Positivo sottochiave</td><td>Protezione cortocircuiti, zero drain a quadro spento, tenuta acqua</td></tr>
-          </tbody>
-        </table>`,
-      specs: `
-        <table>
-          <thead><tr><th>Parametro Verificato (SYM Symphony ST 200i ABS 2019)</th><th>Valore</th><th>Fonte</th></tr></thead>
-          <tbody>
-            <tr><td>Motore / Cilindrata</td><td class="mono">169 cc, monocilindrico 4T aria</td><td class="mono">[TUO]</td></tr>
-            <tr><td>Alesaggio × Corsa / Rapporto compressione</td><td class="mono">61,0 × 57,8 mm · 10,16 ± 0,2 : 1</td><td class="mono">[XB20] / [TUO]</td></tr>
-            <tr><td>Potenza / Coppia massima</td><td class="mono">8,8 kW @ 8.000 rpm · 12,2 Nm @ 6.000 rpm</td><td class="mono">[TUO]</td></tr>
-            <tr><td>Banda RPM target CVT / Minimo</td><td class="mono">7.600–8.100 rpm · 1.800 ± 100 rpm</td><td class="mono">[TUO]</td></tr>
-            <tr><td>Gioco valvole IN / EX (motore freddo &lt; 35 °C)</td><td class="mono">0,12 ± 0,02 mm</td><td class="mono">[TUO]</td></tr>
-          </tbody>
-        </table>`
-    };
+  <section class="section" id="hardware" aria-labelledby="hardware-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="hardware-h">Hardware ESP32-S3 e Smart IMU. <span class="muted">Progettato per il vano caldo dello scooter.</span></h2>
+      </div>
+      <div class="grid grid--middle">
+        <div class="span-6 stack-5">
+          <ul class="rows">
+            <li><span class="rows__name">ESP32-S3 o ESP32-C5</span><p>SDK ESP-IDF v6.x, controller CAN TWAI integrato per lettura passiva OBD.</p><span class="rows__value">-40/+85 °C</span></li>
+            <li><span class="rows__name">Smart IMU ST ISM330IS</span><p>Bus SPI fino a 1 kHz e core AI ISPU per piega stabile e FFT vibrazioni CVT.</p><span class="rows__value">SPI · ISPU</span></li>
+            <li><span class="rows__name">GNSS M10 e Hold-Up IGN</span><p>Fix multi-costellazione a 10 Hz e condensatore di hold-up per fsync() allo spegnimento.</p><span class="rows__value">200 ms</span></li>
+          </ul>
+          <p><a class="link" href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/adr/0002-aggiornamento-hardware-sensori-2026.md">Leggi ADR-0002 completo</a></p>
+        </div>
+        <div class="span-6 start-7">
+          <div class="panel">
+            <div class="dg" data-diagram><script type="application/json">{
+              "layout": "fanin",
+              "ground": "dots",
+              "alt": "Sensori SPI, GNSS UART, CAN OBD e monitor tensione convergono su ESP32-S3 verso microSD e server HTTPS.",
+              "sources": [
+                {"label": "ISM330IS IMU", "meta": "SPI 1 kHz", "icon": "ui:activity"},
+                {"label": "GNSS M10", "meta": "UART 10 Hz", "icon": "ui:compass"},
+                {"label": "CAN OBD", "meta": "Listen-only", "icon": "ui:cpu"},
+                {"label": "IGN 12V ADC", "meta": "47k / 10k", "icon": "ui:zap"}
+              ],
+              "target": {"label": "ESP32-S3", "meta": ".slab v1 + TLS", "icon": "ui:hard-drive"}
+            }</script></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    let current = "phases";
-    function render() { document.getElementById("tab-root").innerHTML = views[current]; }
-    document.getElementById("tabs").querySelectorAll("button").forEach(btn => {
-      btn.onclick = () => {
-        current = btn.dataset.tab;
-        document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b === btn));
-        render();
-      };
-    });
-    render();
-  </script>
+  <section class="section" id="sicurezza" aria-labelledby="sicurezza-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="sicurezza-h">Firmware C++17 e formato .slab v1. <span class="muted">NVS cifrata, HTTPS TLS e doppio CRC32.</span></h2>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-6">
+          <h3>Sicurezza ESP-IDF e RED EN 18031</h3>
+          <p>Credenziali Wi-Fi e token salvati in NVS cifrata, doppia partizione OTA A/B con rollback e upload HTTPS TLS 1.3 con Bearer Token.</p>
+          <div class="panel">
+            <img class="frame__img" src="assets/img/photo-f113714930.jpg" srcset="assets/img/photo-f113714930-500.jpg 500w, assets/img/photo-f113714930-960.jpg 960w, assets/img/photo-f113714930.jpg 1280w" sizes="(max-width: 639px) 166vw, (max-width: 1023px) 100vw, 50vw" width="1280" height="962" alt="Dettaglio ravvicinato di piste in rame su scheda elettronica prototipale" loading="lazy" decoding="async" data-source="stand-in" data-subject="stand-in">
+          </div>
+        </article>
+        <article class="card card--row card--open span-6">
+          <h3>Parser Python e Docker Smart Garage</h3>
+          <p>Header 32 byte e doppio CRC32 allineati tra firmware C++17 e parser Python, con Docker Compose, Mosquitto Mini-UNS e alert tagliandi SYM.</p>
+          <div class="panel">
+            <div class="stack-icons">
+              <div class="stack-ic"><img src="assets/icons/cplusplus.svg" width="32" height="32" loading="lazy" alt="C++17"><span>C++17</span></div>
+              <div class="stack-ic"><img src="assets/icons/python.svg" width="32" height="32" loading="lazy" alt="Python"><span>Python</span></div>
+              <div class="stack-ic"><img src="assets/icons/docker.svg" width="32" height="32" loading="lazy" alt="Docker"><span>Docker</span></div>
+              <div class="stack-ic"><img src="assets/icons/github.svg" width="32" height="32" loading="lazy" alt="GitHub"><span>GitHub</span></div>
+              <div class="stack-ic"><img src="assets/icons/tailscale.svg" width="32" height="32" loading="lazy" alt="Tailscale"><span>WireGuard</span></div>
+              <div class="stack-ic"><img src="assets/icons/linux.svg" width="32" height="32" loading="lazy" alt="Linux"><span>ESP-IDF</span></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section ground-inverse" id="roadmap" aria-labelledby="roadmap-h">
+    <div class="wrap">
+      <div class="section-head" data-moment="liquid-type" style="max-width:none">
+        <h2 id="roadmap-h" class="mo-lt__type">Livelli IoT ScooterLab</h2>
+        <p>Quattro stadi incrementali senza tagliare fili originali e senza scaricare la batteria da 12&nbsp;V / 6&nbsp;Ah.</p>
+      </div>
+      <ol class="roadmap-list">
+        <li class="roadmap-item">
+          <h3>Livello 0 · IMU e GNSS</h3>
+          <p>IMU ST ISM330IS su SPI, GNSS 10&nbsp;Hz, monitor regolatore 14,0–14,8&nbsp;V e baseline A/B prima e dopo il tagliando.</p>
+          <span class="lvl-tag">BASELINE</span>
+          <div class="lvl-icon"><img src="assets/icons/ui-activity.svg" width="22" height="22" loading="lazy" alt="Telemetria IMU"></div>
+        </li>
+        <li class="roadmap-item">
+          <h3>Livello 1 · Bus CAN OBD</h3>
+          <p>Transceiver SN65HVD230 in listen-only sul connettore OBD per curva CVT 7.600–8.100&nbsp;rpm e anelli ABS 50&nbsp;fori.</p>
+          <span class="lvl-tag">PASSIVO</span>
+          <div class="lvl-icon"><img src="assets/icons/ui-cpu.svg" width="22" height="22" loading="lazy" alt="Bus CAN OBD"></div>
+        </li>
+        <li class="roadmap-item">
+          <h3>Livello 2 · Garage UNS</h3>
+          <p>Upload automatico TLS in garage, report HTML A/B, broker Mosquitto senza GPS raw e alert tagliandi SYM.</p>
+          <span class="lvl-tag">HOME LAB</span>
+          <div class="lvl-icon"><img src="assets/icons/docker.svg" width="22" height="22" loading="lazy" alt="Docker Garage"></div>
+        </li>
+        <li class="roadmap-item">
+          <h3>Livello 3 · Modem NTN</h3>
+          <p>Wake-on-Motion ISPU a 100&nbsp;µA, cut-off hardware batteria a 12,1&nbsp;V e modem LTE Cat-1bis o 3GPP NTN.</p>
+          <span class="lvl-tag">OPZIONALE</span>
+          <div class="lvl-icon"><img src="assets/icons/ui-compass.svg" width="22" height="22" loading="lazy" alt="Modem NTN"></div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="bom" aria-labelledby="bom-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="bom-h">Pinout ESP32-S3 e distinta base. <span class="muted">Zero conflitti sui pin di strapping.</span></h2>
+      </div>
+      <div class="grid grid--middle">
+        <div class="span-6">
+          <div tabindex="0" role="region" aria-labelledby="bom-cap" class="table-wrapper">
+            <table class="spec-table">
+              <caption id="bom-cap">Distinta base hardware Revisione 2 e pinout ESP32-S3</caption>
+              <thead>
+                <tr><th>Componente</th><th>Bus / GPIO ESP32-S3</th><th>Costo</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">ESP32-S3 / C5</th><td class="mono" data-label="GPIO">SPI2 · UART1 · TWAI</td><td class="mono" data-label="Costo">8–14 €</td></tr>
+                <tr><th scope="row">ST ISM330IS IMU</th><td class="mono" data-label="GPIO">SCK 12 · MOSI 11 · MISO 13 · CS 10</td><td class="mono" data-label="Costo">12–20 €</td></tr>
+                <tr><th scope="row">u-blox MAX-M10S</th><td class="mono" data-label="GPIO">RX 18 · TX 17 (UART1)</td><td class="mono" data-label="Costo">15–22 €</td></tr>
+                <tr><th scope="row">microSD 32 GB</th><td class="mono" data-label="GPIO">SPI2 · CS 14 (High Endurance)</td><td class="mono" data-label="Costo">10–14 €</td></tr>
+                <tr><th scope="row">Hold-Up + CAN</th><td class="mono" data-label="GPIO">IGN GPIO 4 · CAN TX 5 / RX 6</td><td class="mono" data-label="Costo">12–21 €</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="span-6 start-7">
+          <div class="officina-photo">
+            <img src="assets/img/photo-f80338924.jpg" srcset="assets/img/photo-f80338924-500.jpg 500w, assets/img/photo-f80338924-960.jpg 960w, assets/img/photo-f80338924.jpg 1280w" sizes="(max-width: 639px) 188vw, (max-width: 1023px) 100vw, 48vw" width="1280" height="653" alt="Oscilloscopio digitale da banco per verifica segnali SPI e alimentazione" loading="lazy" decoding="async" data-source="stand-in" data-subject="stand-in">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="officina" aria-labelledby="officina-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="officina-h">Officina SYM Symphony ST 200i. <span class="muted">Dati verificati da 8 manuali ufficiali.</span></h2>
+      </div>
+      <div class="grid grid--middle">
+        <div class="span-6 stack-4">
+          <div tabindex="0" role="region" aria-labelledby="sym-cap" class="table-wrapper">
+            <table class="spec-table">
+              <caption id="sym-cap">Parametri meccanici ed elettrici verificati SYM Symphony ST 200i ABS</caption>
+              <thead>
+                <tr><th>Parametro</th><th>Valore di fabbrica</th><th>Fonte</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">Valvole (&lt; 35 °C)</th><td class="mono" data-label="Valore">IN/EX 0,12 ± 0,02 mm</td><td class="mono" data-label="Fonte">TUO</td></tr>
+                <tr><th scope="row">Batteria e ricarica</th><td class="mono" data-label="Valore">12 V 6 Ah · 14,5 +0,5 V</td><td class="mono" data-label="Fonte">TUO</td></tr>
+                <tr><th scope="row">Trasmissione CVT</th><td class="mono" data-label="Valore">Cinghia lim. 17,5 mm · Rulli 18×14</td><td class="mono" data-label="Fonte">TUO</td></tr>
+                <tr><th scope="row">ABS Bosch</th><td class="mono" data-label="Valore">Anelli fonici 50 fori (3,43 cm/imp.)</td><td class="mono" data-label="Fonte">XB20</td></tr>
+                <tr><th scope="row">Tagliandi SYM</th><td class="mono" data-label="Valore">3k · 6k · 10k · 12k km</td><td class="mono" data-label="Fonte">TUO</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><a class="link" href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/05-guida-officina-manutenzione-smontaggio.md">Apri la guida officina e smontaggio scocche</a></p>
+        </div>
+        <div class="span-6 start-7">
+          <div class="officina-photo">
+            <img src="assets/img/photo-f107726384.jpg" srcset="assets/img/photo-f107726384-500.jpg 500w, assets/img/photo-f107726384-960.jpg 960w, assets/img/photo-f107726384.jpg 1280w" sizes="(max-width: 639px) 188vw, (max-width: 1023px) 100vw, 48vw" width="1280" height="853" alt="Scooter urbano parcheggiato sul bordo della carreggiata" loading="lazy" decoding="async" data-source="stand-in" data-subject="stand-in">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing footer--dark ground-inverse" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--type">
+      <div class="section-head">
+        <h2 id="close-h">Costruisci la centralina ScooterLab</h2>
+        <p>Firmware C++17, parser Python .slab v1, Docker Smart Garage e guida officina open source.</p>
+      </div>
+      <a class="btn btn--primary btn--xl btn--wide" href="https://github.com/Noobucodonosor/scooterlab">Apri GitHub<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4">
+          <a class="nav__logo" href="#top"><span class="mark" data-mark="arc" aria-hidden="true"></span>ScooterLab</a>
+          <p class="footer__lede">Telemetria IoT non invasiva e documentazione da officina per SYM Symphony ST 200i ABS.</p>
+        </div>
+        <div class="span-2 footer__col"><h3>Architettura</h3><ul><li><a href="#hardware">Hardware ESP32</a></li><li><a href="#sicurezza">Firmware .slab</a></li><li><a href="#roadmap">Livelli IoT</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Specifiche</h3><ul><li><a href="#bom">Pinout ESP32</a></li><li><a href="#officina">Officina SYM</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>ADR</h3><ul><li><a href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/adr/README.md">Indice ADR</a></li><li><a href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/04-formato-slab.md">Formato .slab v1</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Officina</h3><ul><li><a href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/05-guida-officina-manutenzione-smontaggio.md">Guida tagliando</a></li><li><a href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/03-manuali-e-fonti.md">Manuali ufficiali</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 ScooterLab · Daniele Bertuccio</span>
+        <details class="credits"><summary>Fotografie stand-in: Ashley Pomeroy, Tinux, Rashedul Islam Emon e Sérgio Miranda via Wikimedia Commons</summary><p>Printed Circuit Board 9990 di Ashley Pomeroy (CC BY 4.0); Circuit board after manual etching di Tinux (CC0); Oscilloscope front view di Rashedul Islam Emon (CC BY-SA 4.0); Go scooter, go di Sérgio Miranda (CC BY 2.0); tutte via Wikimedia Commons.</p></details>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+<script type="module" src="assets/diagrams/mount.js"></script>
 </body>
 </html>
