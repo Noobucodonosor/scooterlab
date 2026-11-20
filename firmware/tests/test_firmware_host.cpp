@@ -1,0 +1,82 @@
+/**
+ * Host-side C++17 unit & cross-language test for ScooterLab firmware modules.
+ * Generates a real `.slab` v1 binary file that is then verified by Python `tools/analyze.py`.
+ */
+
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "config_nvs.h"
+#include "power_monitor.h"
+#include "slab_writer.h"
+#include "uploader.h"
+
+int main(int argc, char **argv) {
+    const char *out_path = (argc > 1) ? argv[1] : "/tmp/cpp_firmware_test.slab";
+
+    // 1. Verify NVS security validation (ADR-0003 / EN 18031)
+    scooterlab::NvsConfig bad_cfg{};
+    strcpy(bad_cfg.wifi_ssid, "GarageWiFi");
+    strcpy(bad_cfg.wifi_pass, "strong-pass");
+    strcpy(bad_cfg.ingest_url, "http://192.168.1.50:8500/upload"); // cleartext must fail!
+    strcpy(bad_cfg.bearer_token, "1234567890abcdef1234567890");
+    assert(!scooterlab::validate_nvs_config(bad_cfg));
+
+    scooterlab::NvsConfig good_cfg = bad_cfg;
+    strcpy(good_cfg.ingest_url, "https://garage.local:8500/upload");
+    assert(scooterlab::validate_nvs_config(good_cfg));
+
+    // 2. Verify SYM Symphony ST 200i power/regulator classification (TASK-HW-03)
+    assert(scooterlab::adc_mv_to_vbat_mv(2500) == 14250);
+    assert(scooterlab::classify_vbat_mv(14250) == scooterlab::PowerState::CHARGING_OK);
+    assert(scooterlab::classify_vbat_mv(15200) == scooterlab::PowerState::OVER_VOLTAGE);
+    assert(scooterlab::classify_vbat_mv(12500) == scooterlab::PowerState::NOMINAL_IDLE);
+    assert(scooterlab::classify_vbat_mv(11800) == scooterlab::PowerState::BATTERY_LOW);
+    assert(scooterlab::should_trigger_safe_shutdown(4500));
+    assert(!scooterlab::should_trigger_safe_shutdown(12600));
+
+    // 3. Write a realistic `.slab` v1 binary session using firmware `SlabWriter`
+    scooterlab::SlabWriter writer;
+    assert(writer.open(out_path, /*build_level=*/0, /*imu_hz=*/50, /*gps_hz=*/5, 0, 1795143600u));
+
+    for (int i = 0; i < 50 * 20; ++i) {
+        double t = i / 50.0;
+        double roll = (t > 6.0) ? (20.0 * sin(0.8 * (t - 6.0))) : 0.0;
+        slab_imu_rec_t imu{};
+        imu.t_ms = static_cast<uint32_t>(t * 1000.0);
+        imu.ax_mg = (t < 8.0) ? 250 : 20;
+        imu.ay_mg = static_cast<int16_t>(sin(roll * 3.14159 / 180.0) * 400.0);
+        imu.az_mg = static_cast<int16_t>(1000.0 + 70.0 * sin(2.0 * 3.14159 * 8.0 * t));
+        imu.roll_cdeg = static_cast<int16_t>(roll * 100.0);
+        imu.pitch_cdeg = -100;
+        assert(writer.write_imu(imu));
+    }
+
+    for (int j = 0; j < 5 * 20; ++j) {
+        double t = j / 5.0;
+        double speed_ms = (t < 1.0) ? 0.0 : fmin(16.0, (t - 1.0) * 2.8);
+        slab_gps_rec_t gps{};
+        gps.t_ms = static_cast<uint32_t>(t * 1000.0);
+        gps.lat_e7 = 440000000 + j * 150;
+        gps.lon_e7 = 90000000;
+        gps.speed_cms = static_cast<uint16_t>(speed_ms * 100.0);
+        gps.alt_dm = 10100;
+        gps.sats = 10;
+        gps.fix = 3;
+        gps.hdop_x10 = 10;
+        assert(writer.write_gps(gps));
+    }
+
+    assert(writer.record_count() == 1100);
+    assert(writer.close_safe());
+
+    // 4. Verify host-mode uploader accepts the generated file
+    auto up = scooterlab::upload_slab_https(good_cfg, out_path, "cpp_test.slab", nullptr);
+    assert(up.ok && up.http_status == 200 && up.bytes_sent > 20000);
+
+    printf("[C++ Firmware Test] PASS — generated %s (%zu bytes, 1100 records)\n",
+           out_path, up.bytes_sent);
+    return 0;
+}
