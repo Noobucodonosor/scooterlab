@@ -1,0 +1,37 @@
+# ScooterLab Smart Garage Stack — Livello 2 (ADR-0003 & ADR-0004)
+# Avvio locale:
+#   cp .env.example .env   # imposta SCOOTERLAB_BEARER_TOKEN
+#   docker compose -f docker/docker-compose.yml up -d
+
+services:
+  scooterlab-ingest:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ingest
+    container_name: scooterlab-ingest
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      SCOOTERLAB_INGEST_HOST: 0.0.0.0
+      SCOOTERLAB_INGEST_PORT: 8500
+      SCOOTERLAB_SESSIONS_DIR: /data/sessions
+      SCOOTERLAB_REPORTS_DIR: /data/reports
+    ports:
+      - "127.0.0.1:8500:8500"
+    volumes:
+      - ../tools/sessions:/data/sessions
+      - ../tools/reports:/data/reports
+
+  mosquitto-uns:
+    image: eclipse-mosquitto:2
+    container_name: scooterlab-uns
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+
+volumes:
+  mosquitto_data:
