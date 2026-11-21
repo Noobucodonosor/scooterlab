@@ -1,6 +1,12 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { chromium } from 'playwright';
+
+const require = createRequire(import.meta.url);
+const pwPath = fs.existsSync('/tmp/pw-runner/node_modules/playwright')
+  ? '/tmp/pw-runner/node_modules/playwright'
+  : 'playwright';
+const { chromium } = require(pwPath);
 
 const targetUrl = process.env.PREVIEW_TARGET_URL || 'http://127.0.0.1:8765';
 const outDir = process.env.PREVIEW_OUT_DIR || 'docs/preview';
