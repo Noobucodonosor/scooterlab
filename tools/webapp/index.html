@@ -21,7 +21,7 @@
         </div>
       </div>
       <nav class="tabs" role="tablist" aria-label="Sezioni Smart Garage">
-        <button class="tab-btn" role="tab" aria-selected="true" data-tab="garage3d">Officina &amp; 3D Guidato</button>
+        <button class="tab-btn" role="tab" aria-selected="true" data-tab="garage3d">Officina &amp; Esplosi SYM</button>
         <button class="tab-btn" role="tab" aria-selected="false" data-tab="telemetry">Telemetria &amp; A/B Lab</button>
         <button class="tab-btn" role="tab" aria-selected="false" data-tab="checkup">Check-Up Fabbrica &amp; Tagliandi</button>
         <button class="tab-btn" role="tab" aria-selected="false" data-tab="device">Centralina &amp; Smart Garage</button>
@@ -38,32 +38,70 @@
       </div>
     </div>
 
-    <!-- TAB 1: OFFICINA & 3D GUIDATO -->
+    <!-- TAB 1: OFFICINA, ESPLOSI UFFICIALI SYM & RICAMBI OEM -->
     <section id="tab-garage3d" class="panel is-active" role="tabpanel">
       <div class="grid-2">
-        <div class="card">
-          <h2 class="card__title">Digital Twin 3D Interattivo (Quote Verificate SYM)</h2>
-          <p class="muted" style="margin:0 0 10px;">Trascina per ruotare 360°, clicca i punti blu o usa la guida a fianco per mettere a fuoco la zona di lavoro. Modello parametrico tecnico da quote ufficiali (passo 1350 mm, ruote 16", sella 792 mm — non mesh CAD plastiche OEM).</p>
-          <div class="viewer-wrap">
-            <canvas id="scooter-canvas" aria-label="Modello 3D interattivo SYM Symphony ST 200i"></canvas>
-            <div class="viewer-toolbar">
-              <div class="control-group">
-                <button id="btn-xray" class="btn btn--sm btn--primary" type="button">Raggi-X: ON</button>
-                <button id="btn-zoom-in" class="btn btn--sm" type="button">+</button>
-                <button id="btn-zoom-out" class="btn btn--sm" type="button">−</button>
-                <button id="btn-reset3d" class="btn btn--sm" type="button">Reset Vista</button>
+        <div class="stack" style="display:grid;gap:16px;">
+          <div class="card">
+            <div class="toolbar-row" style="margin-bottom:8px;">
+              <div>
+                <h2 class="card__title" style="margin:0;">Atlante Tavole &amp; Esplosi Ufficiali SYM</h2>
+                <div class="muted" id="plate-meta">Estratti in alta risoluzione dai manuali ufficiali in locale (<code>manuals/</code>).</div>
               </div>
-              <span class="mono muted" id="active-part-label">Centralina ScooterLab IP65</span>
+              <div class="control-group">
+                <button id="mode-atlas" class="btn btn--sm btn--primary" type="button">Tavole SYM</button>
+                <button id="mode-glb" class="btn btn--sm" type="button">Modello 3D (.glb)</button>
+              </div>
             </div>
+
+            <div class="viewer-wrap">
+              <div id="atlas-viewport" class="atlas-viewport">
+                <img id="atlas-img" class="atlas-img" alt="Tavola tecnica ufficiale SYM" />
+                <div id="atlas-missing" class="muted" style="display:none;padding:24px;text-align:center;">
+                  Tavole non ancora estratte in locale.<br />Esegui <code>python3 tools/extract_atlas.py</code> per generare gli esplosi dai PDF in <code>manuals/</code>.
+                </div>
+              </div>
+              <canvas id="glb-canvas" aria-label="Viewer 3D modello reale .glb"></canvas>
+              <div id="glb-empty" class="glb-empty">
+                <h3 style="margin:0 0 6px;">Carica la Scansione 3D Reale del tuo Symphony ST 200i</h3>
+                <p class="muted" style="margin:0 0 10px;">Nessun modello finto generato al computer: puoi scansionare il tuo scooter reale in 2 minuti con iPhone (Polycam / Scaniverse) ed esportarlo in formato <code>.glb</code> (salvato solo in locale su <code>tools/local_models/symphony.glb</code>).</p>
+                <input id="glb-file-input" type="file" accept=".glb" />
+              </div>
+              <div class="viewer-toolbar">
+                <div class="control-group">
+                  <button id="btn-zoom-in" class="btn btn--sm" type="button">Zoom +</button>
+                  <button id="btn-zoom-out" class="btn btn--sm" type="button">Zoom −</button>
+                  <button id="btn-reset3d" class="btn btn--sm" type="button">Adatta 100%</button>
+                </div>
+                <span class="mono badge" id="active-part-label">—</span>
+              </div>
+            </div>
+
+            <div id="part-chips" class="part-chips"></div>
           </div>
-          <div id="part-chips" class="part-chips"></div>
+
+          <div class="card">
+            <div class="toolbar-row">
+              <div>
+                <h2 class="card__title" style="margin:0;">Catalogo Ricambi OEM &amp; Microfiche</h2>
+                <div class="muted">Filtrato automaticamente sullo step attivo.</div>
+              </div>
+              <div class="control-group">
+                <input id="oem-search" type="text" placeholder="Cerca codice o ricambio..." style="min-height:36px;padding:4px 10px;" />
+                <label class="chip" style="display:inline-flex;align-items:center;gap:6px;">
+                  <input id="oem-all-toggle" type="checkbox" /> Mostra tutti
+                </label>
+              </div>
+            </div>
+            <div id="oem-list" class="oem-list"></div>
+          </div>
         </div>
 
         <div class="card">
           <div class="toolbar-row" style="margin-bottom:8px;">
             <div>
               <h2 class="card__title" style="margin:0;">Procedure Guidate Passo-Passo</h2>
-              <div class="muted" id="proc-meta">Seleziona un intervento per sincronizzare checklist e vista 3D.</div>
+              <div class="muted" id="proc-meta">Seleziona un intervento per sincronizzare checklist, esploso SYM e ricambi OEM.</div>
             </div>
             <span class="badge mono" id="proc-progress-badge">0 / 0</span>
           </div>

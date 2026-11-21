@@ -21,9 +21,12 @@ tools/garage_state.json
 *.gpx
 private/
 
-# Manuali PDF scaricati localmente (pesanti / copyright produttore)
+# Manuali PDF scaricati localmente e tavole/modelli locali estratti (copyright / dimensioni)
 manuals/
+tools/local_atlas/
+tools/local_models/
 *.pdf
+*.glb
 
 # Build Firmware (PlatformIO / ESP-IDF / Arduino)
 .pio/

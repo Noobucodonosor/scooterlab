@@ -268,6 +268,9 @@ def test_garage_store_specs_procedures_and_persistence(tmp_path: Path) -> None:
 
 
 def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
+    import os
+    old_models_dir = os.environ.get("SCOOTERLAB_MODELS_DIR")
+    os.environ["SCOOTERLAB_MODELS_DIR"] = str(tmp_path / "models")
     token = "test-webapp-token"
     srv = create_server(
         "127.0.0.1",
@@ -282,7 +285,7 @@ def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
     thread.start()
     try:
         # 1. Static Web App & JS assets
-        for path in ("/", "/styles.css", "/app.js", "/scooter3d.js"):
+        for path in ("/", "/styles.css", "/app.js", "/workshop_viewer.js"):
             conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
             conn.request("GET", path)
             r = conn.getresponse()
@@ -290,7 +293,17 @@ def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
             r.read()
             conn.close()
 
-        # 2. Generate demo A/B sessions
+        # 2. Overview contains atlas plates & OEM parts catalog
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/api/overview")
+        r = conn.getresponse()
+        ov = json.loads(r.read().decode("utf-8"))
+        assert r.status == 200
+        assert len(ov["atlas_plates"]) >= 10
+        assert any(p["code"] == "1B01XMA02" for p in ov["oem_parts"])
+        conn.close()
+
+        # 3. Generate demo A/B sessions
         conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
         conn.request("POST", "/api/sessions/demo")
         r = conn.getresponse()
@@ -299,7 +312,7 @@ def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
         assert "demo_post_rulli.slab" in demo["created"]
         conn.close()
 
-        # 3. Inspect A/B session detail with privacy trim
+        # 4. Inspect A/B session detail with privacy trim
         conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
         conn.request("GET", "/api/sessions/demo_post_rulli.slab?baseline=demo_pre_30k.slab&privacy=1")
         r = conn.getresponse()
@@ -312,7 +325,7 @@ def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
         assert len(detail["gps_track"]) >= 2
         conn.close()
 
-        # 4. Save factory check via API
+        # 5. Save factory check via API
         conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
         payload = json.dumps({"spec_id": "valve_in_mm", "value": 0.12}).encode("utf-8")
         conn.request("POST", "/api/garage/check", body=payload, headers={"Content-Type": "application/json"})
@@ -321,6 +334,25 @@ def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
         assert r.status == 200
         assert chk["result"]["status"] == "OK"
         conn.close()
+
+        # 6. Validate .glb upload magic header (reject invalid, accept b"glTF...")
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("POST", "/api/models/upload", body=b"NOT_A_GLB_FILE_1234")
+        r = conn.getresponse()
+        assert r.status == 400
+        r.read()
+        conn.close()
+
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("POST", "/api/models/upload", body=b"glTF\x02\x00\x00\x00\x14\x00\x00\x00\x00\x00\x00\x00")
+        r = conn.getresponse()
+        assert r.status == 200
+        r.read()
+        conn.close()
     finally:
         srv.shutdown()
         srv.server_close()
+        if old_models_dir is None:
+            os.environ.pop("SCOOTERLAB_MODELS_DIR", None)
+        else:
+            os.environ["SCOOTERLAB_MODELS_DIR"] = old_models_dir
