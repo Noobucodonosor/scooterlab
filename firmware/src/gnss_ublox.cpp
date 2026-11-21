@@ -1,4 +1,5 @@
 #include "gnss_ublox.h"
+#include "board_pins.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -68,7 +69,7 @@ bool nmea_parse_line(const char *sentence, uint32_t t_ms, slab_gps_rec_t &state)
         p = comma + 1;
     }
 
-    if (nf < 6 || fields[0] == nullptr) {
+    if (nf < 6 || fields[0] == nullptr || strlen(fields[0]) < 3) {
         return false;
     }
 
