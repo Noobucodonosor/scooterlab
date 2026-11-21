@@ -142,10 +142,19 @@ def write_slab(
     return path
 
 
-def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRecord]]:
-    """Read and validate a `.slab` v1 binary telemetry file."""
+def read_slab(
+    path: Path | str,
+    recover: bool = False,
+) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRecord]]:
+    """Read and validate a `.slab` v1 binary telemetry file.
+
+    When `recover=True`, files missing the `"END!"` footer (e.g. abrupt power
+    loss before `close_safe()`) are parsed record-by-record up to the last
+    complete valid record instead of raising `ValueError`.
+    """
     raw = Path(path).read_bytes()
-    if len(raw) < HEADER_SIZE + FOOTER_SIZE:
+    min_size = HEADER_SIZE if recover else (HEADER_SIZE + FOOTER_SIZE)
+    if len(raw) < min_size:
         raise ValueError("File .slab troppo corto o corrotto")
 
     hdr_body = raw[:28]
@@ -171,24 +180,36 @@ def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRe
     if calc_hdr_crc != stored_hdr_crc:
         raise ValueError("Header CRC32 mismatch")
 
-    payload = raw[HEADER_SIZE:-FOOTER_SIZE]
-    footer_magic, stored_payload_crc = struct.unpack(FOOTER_FMT, raw[-FOOTER_SIZE:])
-    if footer_magic != MAGIC_FOOTER:
-        raise ValueError(f"Magic footer non valido: {footer_magic!r}")
+    has_footer = False
+    if len(raw) >= HEADER_SIZE + FOOTER_SIZE:
+        footer_magic, stored_payload_crc = struct.unpack(FOOTER_FMT, raw[-FOOTER_SIZE:])
+        if footer_magic == MAGIC_FOOTER:
+            has_footer = True
+            payload = raw[HEADER_SIZE:-FOOTER_SIZE]
+            calc_payload_crc = zlib.crc32(payload) & 0xFFFFFFFF
+            if calc_payload_crc != stored_payload_crc:
+                raise ValueError("Payload CRC32 mismatch")
+        elif not recover:
+            raise ValueError(f"Magic footer non valido: {footer_magic!r}")
+    elif not recover:
+        raise ValueError("File .slab privo di footer END!")
 
-    calc_payload_crc = zlib.crc32(payload) & 0xFFFFFFFF
-    if calc_payload_crc != stored_payload_crc:
-        raise ValueError("Payload CRC32 mismatch")
+    if not has_footer:
+        payload = raw[HEADER_SIZE:]
 
     imu_records: List[ImuRecord] = []
     gps_records: List[GpsRecord] = []
     offset = 0
     while offset < len(payload):
         if offset + REC_HDR_SIZE > len(payload):
+            if recover:
+                break
             raise ValueError("Record header troncato")
         rec_type, rec_len, _ = struct.unpack_from(REC_HDR_FMT, payload, offset)
         offset += REC_HDR_SIZE
         if offset + rec_len > len(payload):
+            if recover:
+                break
             raise ValueError("Record payload troncato")
         chunk = payload[offset : offset + rec_len]
         offset += rec_len
@@ -197,6 +218,8 @@ def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRe
             imu_records.append(ImuRecord(*struct.unpack(IMU_FMT, chunk)))
         elif rec_type == REC_GPS and rec_len == GPS_SIZE:
             gps_records.append(GpsRecord(*struct.unpack(GPS_FMT, chunk)))
+        elif recover and rec_type not in (REC_IMU, REC_GPS):
+            break
 
     header = SlabHeader(
         version=version,
