@@ -53,6 +53,9 @@ jobs:
             firmware/src/slab_writer.cpp \
             firmware/src/power_monitor.cpp \
             firmware/src/uploader.cpp \
+            firmware/src/imu_ism330is.cpp \
+            firmware/src/gnss_ublox.cpp \
+            firmware/src/session_manager.cpp \
             firmware/tests/test_firmware_host.cpp \
             -o /tmp/test_fw
           /tmp/test_fw
