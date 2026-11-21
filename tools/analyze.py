@@ -52,34 +52,65 @@ def compute_zero_to_50(gps_records: List[GpsRecord]) -> Optional[float]:
     return round(best, 2) if best is not None else None
 
 
+def _fft_radix2(x: List[complex]) -> List[complex]:
+    """Cooley-Tukey radix-2 FFT (requires len(x) to be a power of 2)."""
+    n = len(x)
+    if n <= 1:
+        return x
+    even = _fft_radix2(x[0::2])
+    odd = _fft_radix2(x[1::2])
+    twiddles = [
+        complex(math.cos(-2.0 * math.pi * k / n), math.sin(-2.0 * math.pi * k / n)) * odd[k]
+        for k in range(n // 2)
+    ]
+    return [even[k] + twiddles[k] for k in range(n // 2)] + [
+        even[k] - twiddles[k] for k in range(n // 2)
+    ]
+
+
 def compute_dominant_frequency(az_g: List[float], sample_hz: int) -> float:
-    """Estimate dominant vertical vibration frequency (2..Nyquist Hz) via DFT."""
-    n = min(len(az_g), 256)
-    if n < 16 or sample_hz <= 0:
+    """Estimate dominant vertical vibration frequency (2..Nyquist Hz) via
+    Welch-averaged Hann-windowed periodogram across the full session."""
+    if len(az_g) < 32 or sample_hz <= 0:
         return 0.0
-    segment = az_g[:n]
-    mean_v = sum(segment) / n
-    centered = [x - mean_v for x in segment]
+
+    win_n = 512 if len(az_g) >= 512 else 256
+    while win_n > len(az_g) and win_n > 32:
+        win_n //= 2
+    step = max(1, win_n // 2)
+
+    hann = [0.5 * (1.0 - math.cos(2.0 * math.pi * i / (win_n - 1))) for i in range(win_n)]
+    psd = [0.0] * (win_n // 2)
+    segments = 0
+
+    for start in range(0, len(az_g) - win_n + 1, step):
+        seg = az_g[start : start + win_n]
+        mean_v = sum(seg) / win_n
+        windowed = [complex((seg[i] - mean_v) * hann[i], 0.0) for i in range(win_n)]
+        spec = _fft_radix2(windowed)
+        for k in range(1, win_n // 2):
+            c = spec[k]
+            psd[k] += c.real * c.real + c.imag * c.imag
+        segments += 1
+
+    if segments == 0:
+        return 0.0
 
     best_hz = 0.0
     best_mag = -1.0
-    max_k = n // 2
-    for k in range(1, max_k):
-        freq = k * sample_hz / n
+    for k in range(1, win_n // 2):
+        freq = k * sample_hz / win_n
         if freq < 2.0:
             continue
-        re = 0.0
-        im = 0.0
-        factor = -2.0 * math.pi * k / n
-        for idx, val in enumerate(centered):
-            ang = factor * idx
-            re += val * math.cos(ang)
-            im += val * math.sin(ang)
-        mag = re * re + im * im
-        if mag > best_mag:
-            best_mag = mag
+        if psd[k] > best_mag:
+            best_mag = psd[k]
             best_hz = freq
     return round(best_hz, 1)
+
+
+def filter_valid_gps(gps_records: List[GpsRecord], max_hdop_x10: int = 50) -> List[GpsRecord]:
+    """Filter out GNSS records without 2D/3D fix or with poor HDOP (> 5.0)."""
+    return [g for g in gps_records if g.fix >= 2 and 0 < g.hdop_x10 <= max_hdop_x10]
 
 
 def compute_kpis(
@@ -90,13 +121,14 @@ def compute_kpis(
     all_t_ms = [r.t_ms for r in imu_records] + [g.t_ms for g in gps_records]
     duration_s = (max(all_t_ms) - min(all_t_ms)) / 1000.0 if len(all_t_ms) >= 2 else 0.0
 
-    speeds_kmh = [(g.speed_cms / 100.0) * 3.6 for g in gps_records]
+    valid_gps = filter_valid_gps(gps_records)
+    speeds_kmh = [(g.speed_cms / 100.0) * 3.6 for g in valid_gps]
     max_speed = max(speeds_kmh) if speeds_kmh else 0.0
     moving = [v for v in speeds_kmh if v > 2.0]
     avg_speed = (sum(moving) / len(moving)) if moving else 0.0
 
     distance_m = 0.0
-    for a, b in zip(gps_records, gps_records[1:]):
+    for a, b in zip(valid_gps, valid_gps[1:]):
         dt_s = max(0.0, (b.t_ms - a.t_ms) / 1000.0)
         v_ms = ((a.speed_cms + b.speed_cms) / 2.0) / 100.0
         distance_m += v_ms * dt_s
@@ -130,7 +162,7 @@ def compute_kpis(
         distance_km=round(distance_m / 1000.0, 2),
         max_speed_kmh=round(max_speed, 1),
         avg_speed_kmh=round(avg_speed, 1),
-        zero_to_50_s=compute_zero_to_50(gps_records),
+        zero_to_50_s=compute_zero_to_50(valid_gps),
         max_lean_left_deg=round(max_left, 1),
         max_lean_right_deg=round(max_right, 1),
         comfort_rms_g=round(comfort_rms, 3),
