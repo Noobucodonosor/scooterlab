@@ -9,7 +9,10 @@
 #include <string.h>
 
 #include "config_nvs.h"
+#include "gnss_ublox.h"
+#include "imu_ism330is.h"
 #include "power_monitor.h"
+#include "session_manager.h"
 #include "slab_writer.h"
 #include "uploader.h"
 
@@ -90,7 +93,33 @@ int main(int argc, char **argv) {
     auto up = scooterlab::upload_slab_https(good_cfg, out_path, "cpp_test.slab", nullptr);
     assert(up.ok && up.http_status == 200 && up.bytes_sent > 20000);
 
-    printf("[C++ Firmware Test] PASS — generated %s (%zu bytes, 1102 records)\n",
+    // 5. Verify ISM330IS SPI burst parsing & scaling
+    const uint8_t burst[12] = {0x64, 0x00, 0x00, 0x00, 0x9C, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10};
+    slab_imu_rec_t parsed_imu{};
+    scooterlab::ism330is_parse_burst_12b(burst, 500, parsed_imu);
+    assert(parsed_imu.gx_ddps == 35);
+    assert(parsed_imu.gz_ddps == -35);
+    assert(parsed_imu.az_mg == 999);
+
+    // 6. Verify u-blox NMEA checksum + RMC/GGA parsing
+    slab_gps_rec_t nmea_gps{};
+    const char *rmc = "$GNRMC,123519,A,4421.0000,N,00913.8000,E,19.44,084.4,211126,003.1,W*72";
+    const char *gga = "$GNGGA,123519,4421.0000,N,00913.8000,E,1,10,1.1,120.0,M,46.9,M,,*58";
+    assert(scooterlab::nmea_parse_line(rmc, 1000, nmea_gps));
+    assert(scooterlab::nmea_parse_line(gga, 1000, nmea_gps));
+    assert(nmea_gps.fix == 3 && nmea_gps.sats == 10 && nmea_gps.hdop_x10 == 11);
+    assert(nmea_gps.lat_e7 == 443500000 && nmea_gps.speed_cms >= 995 && nmea_gps.speed_cms <= 1005);
+
+    // 7. Verify session naming & upload sync marker
+    char sess_path[256];
+    char sess_name[64];
+    assert(scooterlab::next_session_path("/tmp", sess_path, sizeof(sess_path), sess_name, sizeof(sess_name)));
+    assert(!scooterlab::is_session_uploaded(out_path));
+    assert(scooterlab::mark_session_uploaded(out_path));
+    assert(scooterlab::is_session_uploaded(out_path));
+    remove("/tmp/cpp_firmware_test.slab.uploaded");
+
+    printf("[C++ Firmware Test] PASS — generated %s (%zu bytes, 1102 records + drivers OK)\n",
            out_path, up.bytes_sent);
     return 0;
 }

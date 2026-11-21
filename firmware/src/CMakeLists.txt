@@ -5,9 +5,13 @@ idf_component_register(
         "slab_writer.cpp"
         "power_monitor.cpp"
         "uploader.cpp"
+        "imu_ism330is.cpp"
+        "gnss_ublox.cpp"
+        "session_manager.cpp"
     INCLUDE_DIRS
         "../include"
     REQUIRES
+        driver
         nvs_flash
         esp_http_client
         esp_timer

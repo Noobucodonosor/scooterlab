@@ -59,6 +59,22 @@ Ogni record inizia con un mini-header da 4 byte (`<BBH`):
 | `fix` | `uint8` | `0` = no fix, `2` = 2D, `3` = 3D |
 | `hdop_x10` | `uint16` | HDOP × 10 |
 
+#### Record Tipo `3` — CAN / TWAI (`20 byte`, `<IIB3x8s`, ADR-0007)
+| Campo | Tipo | Unità / Scala |
+| :--- | :--- | :--- |
+| `t_ms` | `uint32` | Millisecondi dall'inizio sessione |
+| `can_id` | `uint32` | Identificativo frame CAN (11 o 29 bit) |
+| `dlc` | `uint8` | Lunghezza payload CAN (`0..8`) |
+| `reserved` | `uint8[3]` | Padding allineamento a 0 |
+| `data` | `uint8[8]` | Byte payload CAN |
+
+#### Record Tipo `4` — Health Elettrico/Termico (`8 byte`, `<IHh`, ADR-0007)
+| Campo | Tipo | Unità / Scala |
+| :--- | :--- | :--- |
+| `t_ms` | `uint32` | Millisecondi dall'inizio sessione |
+| `vbat_mv` | `uint16` | Tensione batteria/regolatore `IGN_SENSE` in mV |
+| `temp_dc` | `int16` | Temperatura interna scatola IP65 in deci-°C (`315` = 31,5 °C) |
+
 ### C. File Footer — 8 byte (`<4sI`)
 - `magic`: `"END!"` (`0x45 0x4E 0x44 0x21`)
 - `payload_crc32`: CRC32 (IEEE 802.3) di tutti i byte dei record (dal byte 32 fino al footer escluso).

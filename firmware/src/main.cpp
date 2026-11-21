@@ -14,7 +14,10 @@
 #include "nvs_flash.h"
 #endif
 #include "config_nvs.h"
+#include "gnss_ublox.h"
+#include "imu_ism330is.h"
 #include "power_monitor.h"
+#include "session_manager.h"
 #include "slab_format.h"
 #include "slab_writer.h"
 #include "uploader.h"
@@ -52,9 +55,16 @@ extern "C" void app_main(void) {
         printf("[ScooterLab] NVS cifrata caricata: upload HTTPS pronto per %s\n", cfg.ingest_url);
     }
 
-    // Hardware runtime loop (da completare al banco con MCU + IMU SPI + GNSS UART):
-    // 1. Mount High Endurance microSD FAT32 e apertura sessione via `SlabWriter::open(...)`
-    // 2. Sampling loop Smart IMU (ISM330IS/BHI360 SPI) + GNSS (UART1) -> `write_imu` / `write_gps`
-    // 3. Controllo periodico `IGN_SENSE` -> se `should_trigger_safe_shutdown(vbat_mv)` chiama `close_safe()`
-    // 4. Al rientro in garage (Wi-Fi connesso e `provisioned`) -> `upload_slab_https(...)`
+#ifdef ESP_PLATFORM
+    const bool imu_ok = scooterlab::ism330is_init_spi2();
+    const bool gnss_ok = scooterlab::gnss_init_uart1();
+    printf("[ScooterLab] Driver init: ISM330IS=%s, GNSS_UART1=%s\n",
+           imu_ok ? "OK" : "ERR", gnss_ok ? "OK" : "ERR");
+#endif
+
+    // Loop acquisizione al banco (mounting FATFS SPI3 + freeRTOS task):
+    // - `next_session_path("/sdcard/sessions", ...)` -> `SlabWriter::open(...)`
+    // - `ism330is_read_sample(...)` / `nmea_parse_line(...)` -> `write_imu` / `write_gps`
+    // - `should_trigger_safe_shutdown(vbat_mv)` -> `close_safe()`
+    // - Rientro garage: `!is_session_uploaded(path)` -> `upload_slab_https(...)` -> `mark_session_uploaded(path)`
 }
