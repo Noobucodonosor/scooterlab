@@ -23,8 +23,8 @@
       <nav class="tabs" role="tablist" aria-label="Sezioni Smart Garage">
         <button class="tab-btn" role="tab" aria-selected="true" data-tab="garage3d">Officina &amp; Esplosi SYM</button>
         <button class="tab-btn" role="tab" aria-selected="false" data-tab="telemetry">Telemetria &amp; A/B Lab</button>
-        <button class="tab-btn" role="tab" aria-selected="false" data-tab="checkup">Check-Up Fabbrica &amp; Tagliandi</button>
-        <button class="tab-btn" role="tab" aria-selected="false" data-tab="device">Centralina &amp; Smart Garage</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="checkup">Check-Up &amp; Tagliandi</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="device">Centralina &amp; Backup</button>
       </nav>
     </div>
   </header>
@@ -41,54 +41,64 @@
     <!-- TAB 1: OFFICINA, ESPLOSI UFFICIALI SYM & RICAMBI OEM -->
     <section id="tab-garage3d" class="panel is-active" role="tabpanel">
       <div class="grid-2">
-        <div class="stack" style="display:grid;gap:16px;">
+        <div style="display:grid;gap:16px;min-width:0;">
           <div class="card">
             <div class="toolbar-row" style="margin-bottom:8px;">
-              <div>
-                <h2 class="card__title" style="margin:0;">Atlante Tavole &amp; Esplosi Ufficiali SYM</h2>
-                <div class="muted" id="plate-meta">Estratti in alta risoluzione dai manuali ufficiali in locale (<code>manuals/</code>).</div>
+              <div style="min-width:0;flex:1 1 240px;">
+                <h2 class="card__title" style="margin:0;">Atlante Esplosi Ufficiali SYM</h2>
+                <div class="muted" id="plate-meta">Estratti ad alta risoluzione da <code>manuals/</code>.</div>
               </div>
               <div class="control-group">
-                <button id="mode-atlas" class="btn btn--sm btn--primary" type="button">Tavole SYM</button>
-                <button id="mode-glb" class="btn btn--sm" type="button">Modello 3D (.glb)</button>
+                <button id="mode-atlas" class="seg-btn is-active" type="button">Tavole SYM</button>
+                <button id="mode-glb" class="seg-btn" type="button">Modello 3D (.glb)</button>
               </div>
+            </div>
+
+            <div class="control-group" id="plate-select-row">
+              <label for="plate-select" class="mono muted">Tavola:</label>
+              <select id="plate-select" style="flex:1 1 220px;"></select>
             </div>
 
             <div class="viewer-wrap">
               <div id="atlas-viewport" class="atlas-viewport">
                 <img id="atlas-img" class="atlas-img" alt="Tavola tecnica ufficiale SYM" />
                 <div id="atlas-missing" class="muted" style="display:none;padding:24px;text-align:center;">
-                  Tavole non ancora estratte in locale.<br />Esegui <code>python3 tools/extract_atlas.py</code> per generare gli esplosi dai PDF in <code>manuals/</code>.
+                  Tavole non ancora estratte in locale.<br />Esegui <code>python3 tools/extract_atlas.py</code>.
                 </div>
               </div>
               <canvas id="glb-canvas" aria-label="Viewer 3D modello reale .glb"></canvas>
               <div id="glb-empty" class="glb-empty">
                 <h3 style="margin:0 0 6px;">Carica la Scansione 3D Reale del tuo Symphony ST 200i</h3>
-                <p class="muted" style="margin:0 0 10px;">Nessun modello finto generato al computer: puoi scansionare il tuo scooter reale in 2 minuti con iPhone (Polycam / Scaniverse) ed esportarlo in formato <code>.glb</code> (salvato solo in locale su <code>tools/local_models/symphony.glb</code>).</p>
-                <input id="glb-file-input" type="file" accept=".glb" />
+                <p class="muted" style="margin:0 0 12px;">Scansiona il tuo scooter reale in 2 minuti con iPhone (Polycam / Scaniverse) ed esportalo in formato <code>.glb</code> (salvato solo in locale su <code>tools/local_models/symphony.glb</code>).</p>
+                <label for="glb-file-input" class="btn btn--primary">Carica scansione .glb</label>
+                <input id="glb-file-input" type="file" accept=".glb" style="display:none;" />
               </div>
-              <div class="viewer-toolbar">
+              <div id="viewer-toolbar" class="viewer-toolbar">
                 <div class="control-group">
                   <button id="btn-zoom-in" class="btn btn--sm" type="button">Zoom +</button>
                   <button id="btn-zoom-out" class="btn btn--sm" type="button">Zoom −</button>
                   <button id="btn-reset3d" class="btn btn--sm" type="button">Adatta 100%</button>
+                  <button id="btn-fullscreen" class="btn btn--sm btn--primary" type="button">Schermo Intero</button>
                 </div>
                 <span class="mono badge" id="active-part-label">—</span>
               </div>
             </div>
 
-            <div id="part-chips" class="part-chips"></div>
+            <div id="tr-legend" class="tr-legend" style="display:none;">
+              <strong>Legenda rapido manuale proprietario [TUO]:</strong>
+              <code>Akü</code> = Batteria · <code>Sigorta</code> = Fusibili · <code>Hava Filtresi</code> = Filtro aria · <code>Yağ seviyesi</code> = Livello olio · <code>Kontak</code> = Quadro chiave · <code>Yan/Ana ayaklık</code> = Cavalletto lat./centr. · <code>Egzoz</code> = Scarico
+            </div>
           </div>
 
           <div class="card">
             <div class="toolbar-row">
               <div>
                 <h2 class="card__title" style="margin:0;">Catalogo Ricambi OEM &amp; Microfiche</h2>
-                <div class="muted">Filtrato automaticamente sullo step attivo.</div>
+                <div class="muted">Filtrato sullo step attivo.</div>
               </div>
               <div class="control-group">
                 <input id="oem-search" type="text" placeholder="Cerca codice o ricambio..." style="min-height:36px;padding:4px 10px;" />
-                <label class="chip" style="display:inline-flex;align-items:center;gap:6px;">
+                <label class="check-label">
                   <input id="oem-all-toggle" type="checkbox" /> Mostra tutti
                 </label>
               </div>
@@ -122,10 +132,10 @@
             <select id="base-select"></select>
           </div>
           <div class="control-group">
-            <label class="chip" style="display:inline-flex;align-items:center;gap:6px;">
+            <label class="check-label">
               <input id="privacy-toggle" type="checkbox" checked /> Privacy Zone 300 m
             </label>
-            <label class="chip" style="display:inline-flex;align-items:center;gap:6px;">
+            <label class="check-label">
               <input id="recover-toggle" type="checkbox" /> Recovery .slab troncato
             </label>
             <button id="btn-demo" class="btn btn--primary" type="button">Genera Demo A/B da Casa</button>
@@ -137,7 +147,10 @@
             <strong>Carica un file <code>.slab</code> dal PC/SD</strong>
             <span class="muted"> · Trascina qui oppure scegli file (supporta Recovery senza footer <code>END!</code>)</span>
           </div>
-          <input id="file-input" type="file" accept=".slab" />
+          <div>
+            <label for="file-input" class="btn btn--sm">Scegli file .slab</label>
+            <input id="file-input" type="file" accept=".slab" style="display:none;" />
+          </div>
         </div>
       </div>
 
@@ -146,15 +159,15 @@
       <div class="charts-grid">
         <div class="chart-box">
           <h3><span>Velocità nel Tempo (km/h)</span><span class="mono muted" id="speed-meta">—</span></h3>
-          <svg id="svg-speed" class="svg-chart" viewBox="0 0 600 220"></svg>
+          <svg id="svg-speed" class="svg-chart" viewBox="0 0 600 240"></svg>
         </div>
         <div class="chart-box">
           <h3><span>Spettro Vibrazioni FFT Welch</span><span class="mono muted" id="fft-meta">—</span></h3>
-          <svg id="svg-fft" class="svg-chart" viewBox="0 0 600 220"></svg>
+          <svg id="svg-fft" class="svg-chart" viewBox="0 0 600 240"></svg>
         </div>
         <div class="chart-box">
           <h3><span>Traccia Percorso Offline</span><span class="mono muted" id="track-meta">Privacy 300 m</span></h3>
-          <svg id="svg-track" class="svg-chart" viewBox="0 0 600 220"></svg>
+          <svg id="svg-track" class="svg-chart" viewBox="0 0 600 240"></svg>
         </div>
       </div>
     </section>
@@ -163,8 +176,11 @@
     <section id="tab-checkup" class="panel" role="tabpanel">
       <div class="grid-2">
         <div class="card">
-          <h2 class="card__title">Verificatore Tolleranze di Fabbrica ([TUO] / [XB20])</h2>
-          <p class="muted" style="margin:0 0 12px;">Inserisci le misure rilevate con multimetro, spessimetro, calibro o manometro per certificare subito la conformità del mezzo.</p>
+          <div class="toolbar-row" style="margin-bottom:6px;">
+            <h2 class="card__title" style="margin:0;">Verificatore Tolleranze ([TUO] / [XB20])</h2>
+            <span class="badge mono" id="specs-summary">0 / 11 verificati</span>
+          </div>
+          <p class="muted" style="margin:0 0 12px;">Inserisci le misure rilevate con multimetro, spessimetro o calibro (conferma con <code>Invio</code> o <code>Verifica</code>).</p>
           <div id="specs-list"></div>
         </div>
 
@@ -172,12 +188,12 @@
           <h2 class="card__title">Scadenziario Tagliandi Ufficiali SYM</h2>
           <div id="maint-schedule" style="margin-bottom:16px;"></div>
 
-          <h3 class="card__title">Registra Intervento Eseguito</h3>
-          <form id="maint-form" class="control-group" style="margin-top:8px;">
-            <input id="maint-item" type="text" placeholder="es. Cambio olio motore 0,70 L + filtro" required style="flex:1 1 200px;" />
-            <input id="maint-km" type="number" step="0.1" placeholder="km" required style="width:110px;" />
-            <input id="maint-notes" type="text" placeholder="Note / ricambio usato" style="flex:1 1 160px;" />
-            <button class="btn btn--primary" type="submit">Registra</button>
+          <h3 class="card__title">Registra Intervento Personalizzato</h3>
+          <form id="maint-form" class="maint-form">
+            <input id="maint-item" type="text" placeholder="es. Cambio olio 0,70 L + filtro" required style="grid-column: 1 / -1;" />
+            <input id="maint-km" type="number" step="0.1" placeholder="km" required />
+            <input id="maint-notes" type="text" placeholder="Note / ricambio usato" />
+            <button class="btn btn--primary" type="submit" style="grid-column: 1 / -1;">Registra Intervento</button>
           </form>
 
           <h3 class="card__title" style="margin-top:16px;">Storico Manutenzione</h3>
@@ -186,25 +202,43 @@
       </div>
     </section>
 
-    <!-- TAB 4: CENTRALINA & SMART GARAGE -->
+    <!-- TAB 4: CENTRALINA, DIAGNOSTICA & BACKUP -->
     <section id="tab-device" class="panel" role="tabpanel">
       <div class="grid-2">
         <div class="card">
-          <h2 class="card__title">Stato Server &amp; Centralina ESP32-S3</h2>
-          <div id="device-status" class="stack" style="display:grid;gap:10px;margin-top:10px;"></div>
+          <h2 class="card__title">Stato Server &amp; Diagnostica Smart Garage</h2>
+          <div id="device-status" style="display:grid;gap:10px;margin-top:10px;"></div>
+          <div class="control-group" style="margin-top:14px;">
+            <button id="btn-ping-health" class="btn btn--primary btn--sm" type="button">Test Connessione /health</button>
+            <a href="/api/garage/export" class="btn btn--sm" download="scooterlab_garage_backup.json">Scarica Backup JSON</a>
+          </div>
+          <div id="ping-result" class="muted mono" style="margin-top:8px;"></div>
         </div>
         <div class="card">
-          <h2 class="card__title">Comandi Rapidi Banco &amp; Garage</h2>
-          <p class="muted">Usa questi comandi per certificati TLS locali, test firmware host C++17 e avvio stack Docker Smart Garage:</p>
-          <pre class="mono" style="background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--line);overflow:auto;font-size:12px;">./tools/gen_local_tls.sh
+          <div class="toolbar-row">
+            <h2 class="card__title" style="margin:0;">Comandi Rapidi Banco &amp; Docker</h2>
+            <button id="btn-copy-cmds" class="btn btn--sm" type="button">Copia comandi</button>
+          </div>
+          <pre id="bench-cmds" class="cmd-pre mono">./tools/gen_local_tls.sh
 cp .env.example .env
 docker compose -f docker/docker-compose.yml up -d
 python3 tools/ingest_server.py</pre>
-          <p class="muted">Tutti i dati personali (<code>tools/garage_state.json</code>, <code>tools/sessions/</code>, <code>tools/reports/</code>) restano esclusi da Git tramite <code>.gitignore</code>.</p>
+          <p class="muted">I tuoi dati personali (<code>tools/garage_state.json</code>, <code>tools/sessions/</code>, <code>tools/local_atlas/</code>) restano esclusi da Git tramite <code>.gitignore</code>.</p>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- Lightbox Schermo Intero -->
+  <div id="lightbox-modal" class="lightbox" role="dialog" aria-modal="true" aria-label="Tavola tecnica a schermo intero">
+    <div class="lightbox__bar">
+      <span id="lightbox-title" class="mono">Tavola SYM</span>
+      <button id="lightbox-close" class="btn btn--sm" type="button">Chiudi (Esc)</button>
+    </div>
+    <div class="lightbox__body">
+      <img id="lightbox-img" alt="Tavola tecnica ingrandita" />
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

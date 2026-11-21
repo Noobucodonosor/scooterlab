@@ -319,10 +319,21 @@ def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
         detail = json.loads(r.read().decode("utf-8"))
         assert r.status == 200
         assert detail["baseline_session"] == "demo_pre_30k.slab"
+        assert len(detail["baseline_speed_series"]) >= 10
+        assert len(detail["baseline_spectrum_series"]) >= 10
         assert detail["deltas"]["zero_to_50_s"] < 0
         assert detail["health_summary"]["regulator_ok"] is True
         assert detail["can_count"] > 0
         assert len(detail["gps_track"]) >= 2
+        conn.close()
+
+        # 4b. Export garage JSON backup
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/api/garage/export")
+        r = conn.getresponse()
+        exported = json.loads(r.read().decode("utf-8"))
+        assert r.status == 200
+        assert "odometer_km" in exported
         conn.close()
 
         # 5. Save factory check via API
