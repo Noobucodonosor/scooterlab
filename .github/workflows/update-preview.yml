@@ -1,0 +1,76 @@
+name: Update Social Preview
+
+on:
+  push:
+    branches: [main, gh-pages]
+    paths-ignore:
+      - 'docs/preview/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Checkout gh-pages site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: _site
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw-runner --no-save playwright
+          /tmp/pw-runner/node_modules/.bin/playwright install chromium
+
+      - name: Generate preview screenshots
+        env:
+          NODE_PATH: /tmp/pw-runner/node_modules
+          PREVIEW_TARGET_URL: http://127.0.0.1:8765
+          PREVIEW_OUT_DIR: docs/preview
+          PREVIEW_BADGE: "LIVE PREVIEW · GITHUB PAGES"
+          PREVIEW_TITLE: "ScooterLab — IoT ESP32"
+          PREVIEW_DESC: "Telemetria IoT & hardware design non invasivo Livello 0 (ESP32, IMU I2C, GPS UART, microSD SPI) per SYM Symphony ST 200i."
+          PREVIEW_TAGS: "ESP32,ESP-IDF,I2C / SPI / UART,Docker,MQTT"
+          PREVIEW_REPO: "github.com/Noobucodonosor/scooterlab"
+          PREVIEW_LIVE_URL: "https://noobucodonosor.github.io/scooterlab"
+          PREVIEW_THEME: "blue"
+        run: |
+          python3 -m http.server 8765 -d _site >/tmp/http.log 2>&1 &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID 2>/dev/null || true" EXIT
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8765 >/dev/null && break
+            sleep 0.5
+          done
+          node .github/scripts/generate-preview.mjs
+
+      - name: Commit and push updated previews
+        run: |
+          rm -rf _site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/preview/desktop.png docs/preview/mobile.png docs/preview/social-preview.png
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(preview): auto-update social preview [skip ci]"
+            git pull --rebase origin main
+            git push origin main
+          else
+            echo "No preview changes detected."
+          fi

@@ -1,0 +1,48 @@
+# Segreti, configurazioni locali e credenziali Wi-Fi / TLS
+.env
+.env.*
+!.env.example
+secrets.h
+sdkconfig.local
+*.pem
+*.key
+*.crt
+*.p12
+
+# Telemetria reale, tracce GPS e report privati (Privacy)
+sessions/
+reports/
+tools/sessions/
+tools/reports/
+tools/garage_state.json
+*.garage_state.json
+*.slab
+*.gps.csv
+*.gpx
+private/
+
+# Manuali PDF scaricati localmente e tavole/modelli locali estratti (copyright / dimensioni)
+manuals/
+tools/local_atlas/
+tools/local_models/
+*.pdf
+*.glb
+
+# Build Firmware (PlatformIO / ESP-IDF / Arduino)
+.pio/
+build/
+managed_components/
+sdkconfig.old
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

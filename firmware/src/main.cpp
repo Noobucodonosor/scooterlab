@@ -1,0 +1,70 @@
+/**
+ * ScooterLab Edge Telemetry Logger — ESP-IDF v6.x (ADR-0002 / ADR-0003)
+ *
+ * Modules integrated:
+ * - `config_nvs`: encrypted NVS credentials (zero hardcoded passwords, EN 18031)
+ * - `slab_writer`: deterministic `.slab` v1 logging with incremental CRC32 + fsync
+ * - `power_monitor`: IGN_SENSE ADC divider (47k/10k) for SYM regulator health & safe shutdown
+ * - `uploader`: chunked HTTPS TLS 1.3 + Bearer Token upload on garage Wi-Fi
+ */
+
+#include <stdio.h>
+#ifdef ESP_PLATFORM
+#include "esp_err.h"
+#include "nvs_flash.h"
+#endif
+#include "config_nvs.h"
+#include "gnss_ublox.h"
+#include "imu_ism330is.h"
+#include "power_monitor.h"
+#include "session_manager.h"
+#include "slab_format.h"
+#include "slab_writer.h"
+#include "uploader.h"
+
+#ifndef BUILD_LEVEL
+#define BUILD_LEVEL 0
+#endif
+
+#ifndef IMU_SAMPLE_HZ
+#define IMU_SAMPLE_HZ 100
+#endif
+
+#ifndef GPS_SAMPLE_HZ
+#define GPS_SAMPLE_HZ 5
+#endif
+
+extern "C" void app_main(void) {
+    printf("[ScooterLab] Booting firmware (BUILD_LEVEL=%d, SLAB v%u, IMU=%dHz, GPS=%dHz)\n",
+           BUILD_LEVEL, SLAB_VERSION, IMU_SAMPLE_HZ, GPS_SAMPLE_HZ);
+
+#ifdef ESP_PLATFORM
+    esp_err_t nvs_err = nvs_flash_init();
+    if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs_err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs_err);
+#endif
+
+    scooterlab::NvsConfig cfg{};
+    const bool provisioned = scooterlab::load_nvs_config(cfg);
+    if (!provisioned) {
+        printf("[ScooterLab] NVS non provisionata: modalita solo logging offline microSD\n");
+    } else {
+        printf("[ScooterLab] NVS cifrata caricata: upload HTTPS pronto per %s\n", cfg.ingest_url);
+    }
+
+#ifdef ESP_PLATFORM
+    const bool imu_ok = scooterlab::ism330is_init_spi2();
+    const bool gnss_ok = scooterlab::gnss_init_uart1();
+    printf("[ScooterLab] Driver init: ISM330IS=%s, GNSS_UART1=%s\n",
+           imu_ok ? "OK" : "ERR", gnss_ok ? "OK" : "ERR");
+#endif
+
+    // Loop acquisizione al banco (mounting FATFS SPI3 + freeRTOS task):
+    // - `next_session_path("/sdcard/sessions", ...)` -> `SlabWriter::open(...)`
+    // - `ism330is_read_sample(...)` / `nmea_parse_line(...)` -> `write_imu` / `write_gps`
+    // - `should_trigger_safe_shutdown(vbat_mv)` -> `close_safe()`
+    // - Rientro garage: `!is_session_uploaded(path)` -> `upload_slab_https(...)` -> `mark_session_uploaded(path)`
+}
