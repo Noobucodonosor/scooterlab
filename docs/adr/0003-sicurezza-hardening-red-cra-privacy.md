@@ -1,6 +1,6 @@
 # ADR-0003: Sicurezza, Hardening (RED EN 18031 / CRA-Ready) e Privacy
 
-- **Stato:** Proposto (`Proposed`)
+- **Stato:** Accettato (`Accepted`)
 - **Priorità:** P0 — Critica
 - **Data:** 2026-11-20
 - **Autori:** Daniele Bertuccio (`@Noobucodonosor`)

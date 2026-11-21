@@ -1,6 +1,6 @@
 # ADR-0004: Pipeline Dati Telemetria, Unified Namespace (UNS) e Automazione Manutenzione
 
-- **Stato:** Proposto (`Proposed`)
+- **Stato:** Accettato (`Accepted`)
 - **Priorità:** P1 — Alta
 - **Data:** 2026-11-20
 - **Autori:** Daniele Bertuccio (`@Noobucodonosor`)

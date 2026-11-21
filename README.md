@@ -6,14 +6,14 @@
 
 Progetto di **ingegneria IoT / embedded e telemetria veicolare non invasiva (Livello 0)** per **SYM Symphony ST 200i ABS (XB20E2-EU)**, progettato per registrare cinematica, dinamica e percorsi su strada senza alterare l'impianto o la ECU di serie.
 
-> **Stato del progetto:** **Specifica Hardware, BOM, Cablaggio, Scheda Officina Verificata e ADR completati** — Firmware ESP32 (C++/PlatformIO) e parser telemetria Python in roadmap.
+> **Stato del progetto:** **Specifica Hardware Rev. 2, ADR-0001..0005, scaffold firmware ESP-IDF v6.x e pipeline dati Python (`.slab`, `analyze.py`, `ingest_server.py`, Docker stack) attivi** — Driver sensori su banco in completamento.
 
-## Architettura Hardware (Livello 0)
-- **Microcontrollore:** ESP32 DevKit (Wi-Fi / BLE)
-- **Inerziale (IMU):** MPU-6050 su bus I2C (accelerometro + giroscopio 6 assi)
-- **Posizionamento:** Modulo GPS su UART (traccia, velocità reale, timestamp UTC)
-- **Persistenza:** Modulo microSD 32 GB su SPI per logging offline continuo
-- **Alimentazione Veicolare Sicura:** Positivo sottochiave 12 V → Fusibile 1 A → Convertitore Buck DC-DC 12 V → 5 V tarato a banco → Scatola stagna IP65
+## Architettura Hardware Target (Rev. 2 — 2026)
+- **Microcontrollore:** ESP32-S3 / ESP32-C5 (`ESP-IDF v6.x` / PlatformIO, TWAI/CAN integrato)
+- **Inerziale (Smart IMU):** ST `ISM330IS` / Bosch `BHI360` su bus **SPI** (1–4 kHz + In-Sensor AI)
+- **Posizionamento:** Modulo GNSS `u-blox M10` su **UART** (5–10 Hz, traccia, velocità reale, timestamp UTC)
+- **Persistenza:** Modulo microSD High Endurance 32 GB su **SPI** (formato binario `.slab` v1 con CRC32)
+- **Alimentazione & Sicurezza:** Positivo sottochiave 12 V → Fusibile 1 A → Buck 12 V → 5 V + partitore `IGN_SENSE` → Scatola stagna IP65; upload su Wi-Fi garage via **HTTPS TLS 1.3 + Bearer Token** (NVS cifrata)
 
 ## Documentazione Tecnica
 - **[Indice ADR, Architettura Target 2026 & Master Task Backlog](./docs/adr/README.md)**
@@ -21,7 +21,8 @@ Progetto di **ingegneria IoT / embedded e telemetria veicolare non invasiva (Liv
   - [ADR-0002 — Aggiornamento Hardware, MCU & Smart IMU (Revisione 2026)](./docs/adr/0002-aggiornamento-hardware-sensori-2026.md)
   - [ADR-0003 — Sicurezza, Hardening (RED/CRA-Ready) e Privacy](./docs/adr/0003-sicurezza-hardening-red-cra-privacy.md)
   - [ADR-0004 — Pipeline Dati, Unified Namespace (UNS) e Automazione](./docs/adr/0004-pipeline-dati-telemetria-uns-automazione.md)
-- [Istruzioni di Montaggio (Livello 0 — Fasi A, B, C, C2, D)](./docs/01-istruzioni-montaggio-livello-0.md)
+  - [ADR-0005 — Smart Garage Container Stack, TLS End-to-End & Hardening Ingest](./docs/adr/0005-smart-garage-container-stack-tls.md)
+- [Istruzioni di Montaggio (Baseline Livello 0 — Legacy/Storico)](./docs/01-istruzioni-montaggio-livello-0.md)
 - [Scheda Dati Tecnici Verificati da Officina](./docs/02-dati-tecnici-verificati.md)
 - [Manuali e Fonti Ufficiali](./docs/03-manuali-e-fonti.md)
 - [Specifica Formato Binario `.slab` v1](./docs/04-formato-slab.md)
@@ -31,5 +32,6 @@ Progetto di **ingegneria IoT / embedded e telemetria veicolare non invasiva (Liv
 - [AGENTS.md — Contesto & Regole per Sviluppatori e Agenti AI](./AGENTS.md)
 
 ## Stack & Competenze
-- **Hardware & Embedded:** ESP32, MPU-6050 (I2C), GPS (UART), microSD (SPI), elettronica di alimentazione 12 V→5 V, protezioni IP65/fusibili
+- **Hardware & Embedded:** ESP32-S3/C5, `ESP-IDF v6.x`, Smart IMU `ISM330IS` (SPI), GNSS (UART), microSD (SPI), elettronica 12 V→5 V, protezioni IP65/fusibili
+- **Backend & Sicurezza:** Python (`tools/analyze.py`, `tools/ingest_server.py`), Docker Compose, TLS 1.3, NVS cifrata, MQTT/UNS (`paho-mqtt`)
 - **Metodologia:** Documentazione tracciabile per provenienza fonte (`[TUO]`, `[XB20]`, `[FAM]`, `[DERIV]`) + ADR-Driven
