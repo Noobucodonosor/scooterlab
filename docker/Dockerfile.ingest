@@ -1,9 +1,20 @@
 FROM python:3.12-slim
 
+RUN useradd --create-home --shell /usr/sbin/nologin scooterlab \
+    && pip install --no-cache-dir "paho-mqtt>=2.0"
+
 WORKDIR /app
 COPY tools/ /app/tools/
 
+RUN mkdir -p /data/sessions /data/reports /etc/scooterlab/certs \
+    && chown -R scooterlab:scooterlab /app /data
+
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8500
+
+USER scooterlab
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD python3 -c "import os, socket; socket.create_connection(('127.0.0.1', int(os.environ.get('SCOOTERLAB_INGEST_PORT', '8500'))), timeout=3).close()"
 
 CMD ["python3", "/app/tools/ingest_server.py"]

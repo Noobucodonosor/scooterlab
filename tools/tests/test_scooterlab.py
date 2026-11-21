@@ -109,6 +109,49 @@ def test_ingest_server_enforces_bearer_auth(tmp_path: Path) -> None:
         assert (tmp_path / "sessions" / "sess00001.slab").exists()
         assert (tmp_path / "reports" / "sess00001.html").exists()
         conn.close()
+
+        # 3. Duplicate X-Session-Name does NOT overwrite existing session
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request(
+            "POST",
+            "/upload",
+            body=raw,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Session-Name": "sess00001.slab",
+            },
+        )
+        resp = conn.getresponse()
+        body2 = json.loads(resp.read().decode("utf-8"))
+        assert resp.status == 200
+        assert body2["session"] == "sess00001_1.slab"
+        assert (tmp_path / "sessions" / "sess00001_1.slab").exists()
+        conn.close()
+
+        # 4. Malformed Content-Length -> 400 (no 500)
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request(
+            "POST",
+            "/upload",
+            body=b"",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Session-Name": "bad.slab",
+                "Content-Length": "not-an-int",
+            },
+        )
+        resp = conn.getresponse()
+        assert resp.status == 400
+        resp.read()
+        conn.close()
+
+        # 5. GET /health -> 200
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/health")
+        resp = conn.getresponse()
+        assert resp.status == 200
+        resp.read()
+        conn.close()
     finally:
         srv.shutdown()
         srv.server_close()
