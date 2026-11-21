@@ -169,7 +169,7 @@
           <ul class="rows">
             <li><span class="rows__name">ESP32-S3 o ESP32-C5</span><p>SDK ESP-IDF v6.x, controller CAN TWAI integrato per lettura passiva OBD.</p><span class="rows__value">-40/+85 °C</span></li>
             <li><span class="rows__name">Smart IMU ST ISM330IS</span><p>Bus SPI fino a 1 kHz e core AI ISPU per piega stabile e FFT vibrazioni CVT.</p><span class="rows__value">SPI · ISPU</span></li>
-            <li><span class="rows__name">GNSS M10 e Hold-Up IGN</span><p>Fix multi-costellazione a 10 Hz e condensatore di hold-up per fsync() allo spegnimento.</p><span class="rows__value">200 ms</span></li>
+            <li><span class="rows__name">GNSS M10 e Hold-Up 4700 µF</span><p>Fix multi-costellazione a 10 Hz, TVS SMBJ18A 12V e condensatore 4700 µF per fsync() allo spegnimento.</p><span class="rows__value">200 ms</span></li>
           </ul>
           <p><a class="link" href="https://github.com/Noobucodonosor/scooterlab/blob/main/docs/adr/0002-aggiornamento-hardware-sensori-2026.md">Leggi ADR-0002 completo</a></p>
         </div>
@@ -207,8 +207,8 @@
           </div>
         </article>
         <article class="card card--row card--open span-6">
-          <h3>Parser Python e Docker Smart Garage</h3>
-          <p>Header 32 byte e doppio CRC32 allineati tra firmware C++17 e parser Python, con Docker Compose, Mosquitto Mini-UNS e alert tagliandi SYM.</p>
+          <h3>Smart Garage Web App, 3D Twin e Docker</h3>
+          <p>Web App local-first su :8500 (Modello 3D offline, guide officina passo-passo, FFT Welch, mappa Privacy Zone 300 m) e Mosquitto Mini-UNS.</p>
           <div class="panel">
             <div class="stack-icons">
               <div class="stack-ic"><img src="assets/icons/cplusplus.svg" width="32" height="32" loading="lazy" alt="C++17"><span>C++17</span></div>
@@ -273,11 +273,11 @@
                 <tr><th>Componente</th><th>Bus / GPIO ESP32-S3</th><th>Costo</th></tr>
               </thead>
               <tbody>
-                <tr><th scope="row">ESP32-S3 / C5</th><td class="mono" data-label="GPIO">SPI2 · UART1 · TWAI</td><td class="mono" data-label="Costo">8–14 €</td></tr>
-                <tr><th scope="row">ST ISM330IS IMU</th><td class="mono" data-label="GPIO">SCK 12 · MOSI 11 · MISO 13 · CS 10</td><td class="mono" data-label="Costo">12–20 €</td></tr>
+                <tr><th scope="row">ESP32-S3 / C5</th><td class="mono" data-label="GPIO">Dual-SPI · UART1 · TWAI</td><td class="mono" data-label="Costo">8–14 €</td></tr>
+                <tr><th scope="row">ST ISM330IS IMU</th><td class="mono" data-label="GPIO">SPI2 (12/11/13) · CS 10</td><td class="mono" data-label="Costo">12–20 €</td></tr>
                 <tr><th scope="row">u-blox MAX-M10S</th><td class="mono" data-label="GPIO">RX 18 · TX 17 (UART1)</td><td class="mono" data-label="Costo">15–22 €</td></tr>
-                <tr><th scope="row">microSD 32 GB</th><td class="mono" data-label="GPIO">SPI2 · CS 14 (High Endurance)</td><td class="mono" data-label="Costo">10–14 €</td></tr>
-                <tr><th scope="row">Hold-Up + CAN</th><td class="mono" data-label="GPIO">IGN GPIO 4 · CAN TX 5 / RX 6</td><td class="mono" data-label="Costo">12–21 €</td></tr>
+                <tr><th scope="row">microSD 32 GB</th><td class="mono" data-label="GPIO">SPI3 (36/35/37) · CS 14</td><td class="mono" data-label="Costo">10–14 €</td></tr>
+                <tr><th scope="row">TVS + Hold-Up + CAN</th><td class="mono" data-label="GPIO">IGN 4 · CAN 5/6 · 4700 µF</td><td class="mono" data-label="Costo">12–21 €</td></tr>
               </tbody>
             </table>
           </div>
@@ -330,7 +330,7 @@
     <div class="closing__cta close--type">
       <div class="section-head">
         <h2 id="close-h">Costruisci la centralina ScooterLab</h2>
-        <p>Firmware C++17, parser Python .slab v1, Docker Smart Garage e guida officina open source.</p>
+        <p>Firmware C++17, Smart Garage Web App con Digital Twin 3D offline, Docker TLS e guida officina (ADR-0001..0008).</p>
       </div>
       <a class="btn btn--primary btn--xl btn--wide" href="https://github.com/Noobucodonosor/scooterlab">Apri GitHub<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
     </div>
