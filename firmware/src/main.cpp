@@ -9,6 +9,10 @@
  */
 
 #include <stdio.h>
+#ifdef ESP_PLATFORM
+#include "esp_err.h"
+#include "nvs_flash.h"
+#endif
 #include "config_nvs.h"
 #include "power_monitor.h"
 #include "slab_format.h"
@@ -30,6 +34,15 @@
 extern "C" void app_main(void) {
     printf("[ScooterLab] Booting firmware (BUILD_LEVEL=%d, SLAB v%u, IMU=%dHz, GPS=%dHz)\n",
            BUILD_LEVEL, SLAB_VERSION, IMU_SAMPLE_HZ, GPS_SAMPLE_HZ);
+
+#ifdef ESP_PLATFORM
+    esp_err_t nvs_err = nvs_flash_init();
+    if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs_err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs_err);
+#endif
 
     scooterlab::NvsConfig cfg{};
     const bool provisioned = scooterlab::load_nvs_config(cfg);

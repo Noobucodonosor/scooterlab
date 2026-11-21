@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "main.cpp"
+        "config_nvs.cpp"
+        "slab_writer.cpp"
+        "power_monitor.cpp"
+        "uploader.cpp"
+    INCLUDE_DIRS
+        "../include"
+    REQUIRES
+        nvs_flash
+        esp_http_client
+        esp_timer
+)

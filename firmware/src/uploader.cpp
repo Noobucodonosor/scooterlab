@@ -25,6 +25,10 @@ UploadResult upload_slab_https(const NvsConfig &cfg,
     }
 
 #ifdef ESP_PLATFORM
+    if (ca_cert_pem == nullptr || ca_cert_pem[0] == '\0') {
+        return res;
+    }
+
     FILE *fp = fopen(local_slab_path, "rb");
     if (fp == nullptr) {
         return res;
@@ -45,6 +49,7 @@ UploadResult upload_slab_https(const NvsConfig &cfg,
     char auth_hdr[96];
     snprintf(auth_hdr, sizeof(auth_hdr), "Bearer %s", cfg.bearer_token);
     esp_http_client_set_header(client, "Authorization", auth_hdr);
+    memset(auth_hdr, 0, sizeof(auth_hdr));
     esp_http_client_set_header(client, "X-Session-Name", session_filename);
     esp_http_client_set_header(client, "Content-Type", "application/octet-stream");
 
@@ -59,8 +64,7 @@ UploadResult upload_slab_https(const NvsConfig &cfg,
             }
             res.bytes_sent += n;
         }
-        if (write_ok) {
-            esp_http_client_fetch_headers(client);
+        if (write_ok && esp_http_client_fetch_headers(client) >= 0) {
             res.http_status = esp_http_client_get_status_code(client);
             res.ok = (res.http_status == 200);
         }
