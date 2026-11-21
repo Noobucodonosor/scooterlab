@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Optional MQTT / Mini-UNS publisher for ScooterLab (ADR-0004 / TASK-DATA-03).
+"""Optional MQTT / Mini-UNS publisher for ScooterLab (ADR-0004 / ADR-0005 / TASK-DATA-03).
 
 Publishes ONLY privacy-safe aggregated KPIs and SYM maintenance alerts
 (raw GPS coordinates, VIN, and license plate are stripped by `build_uns_payload`).
+Uses `paho-mqtt` instead of shelling out to `mosquitto_pub -P` so credentials are
+never exposed in the OS process table.
 """
 
 from __future__ import annotations
@@ -10,8 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
-from typing import Dict
+from typing import Dict, Optional
 
 from maintenance_tracker import build_uns_payload
 
@@ -29,17 +30,30 @@ def publish_uns_summary(
     if dry_run:
         return payload
 
+    try:
+        import paho.mqtt.publish as mqtt_publish
+    except ImportError as exc:
+        raise RuntimeError(
+            "paho-mqtt non installato. Installa con `pip install 'scooterlab-tools[uns]'`."
+        ) from exc
+
     host = os.environ.get("SCOOTERLAB_MQTT_HOST", "127.0.0.1")
-    port = os.environ.get("SCOOTERLAB_MQTT_PORT", "1883")
-    cmd = ["mosquitto_pub", "-h", host, "-p", port, "-t", topic, "-m", body]
+    port = int(os.environ.get("SCOOTERLAB_MQTT_PORT", "1883"))
     user = os.environ.get("SCOOTERLAB_MQTT_USER", "")
     pw = os.environ.get("SCOOTERLAB_MQTT_PASS", "")
-    if user:
-        cmd.extend(["-u", user])
-    if pw:
-        cmd.extend(["-P", pw])
+    ca_cert = os.environ.get("SCOOTERLAB_MQTT_CA_CERT", "")
 
-    subprocess.run(cmd, check=True)
+    auth: Optional[Dict[str, str]] = {"username": user, "password": pw} if user else None
+    tls: Optional[Dict[str, str]] = {"ca_certs": ca_cert} if ca_cert else None
+
+    mqtt_publish.single(
+        topic=topic,
+        payload=body,
+        hostname=host,
+        port=port,
+        auth=auth,
+        tls=tls,
+    )
     return payload
 
 

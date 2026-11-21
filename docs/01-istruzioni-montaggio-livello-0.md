@@ -1,4 +1,11 @@
-# ScooterLab — Istruzioni di Montaggio (Livello 0)
+# ScooterLab — Istruzioni di Montaggio (Livello 0 — Baseline Storica)
+
+> [!WARNING]
+> **Documento Legacy (`ADR-0001`):** Questa guida descrive il prototipo iniziale (`ESP32 DevKit` + `MPU-6050` su I2C + `Arduino IDE` + `HTTP` in chiaro).
+> Per la **Revisione 2026** (hardware consigliato per nuovi acquisti e firmware `ESP-IDF v6.x` con `HTTPS TLS 1.3`), fai riferimento a:
+> - [`docs/bom-rev2-2026.md`](./bom-rev2-2026.md) (ESP32-S3/C5 + Smart IMU `ISM330IS` SPI + `u-blox M10` + partitore `IGN_SENSE`)
+> - [`docs/adr/0002-aggiornamento-hardware-sensori-2026.md`](./adr/0002-aggiornamento-hardware-sensori-2026.md)
+> - [`docs/adr/0003-sicurezza-hardening-red-cra-privacy.md`](./adr/0003-sicurezza-hardening-red-cra-privacy.md)
 
 ```text
 SCOOTERLAB — ISTRUZIONI DI MONTAGGIO

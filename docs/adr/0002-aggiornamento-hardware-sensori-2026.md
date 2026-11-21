@@ -1,6 +1,6 @@
 # ADR-0002: Aggiornamento Hardware, MCU, Smart IMU e Sensoristica (Revisione 2026)
 
-- **Stato:** Proposto (`Proposed`) — Evoluzione della baseline [`ADR-0001`](./0001-architettura-telemetria-iot-esp32.md)
+- **Stato:** Accettato (`Accepted`) — Evoluzione della baseline [`ADR-0001`](./0001-architettura-telemetria-iot-esp32.md)
 - **Priorità:** P1 — Alta
 - **Data:** 2026-11-20
 - **Autori:** Daniele Bertuccio (`@Noobucodonosor`)

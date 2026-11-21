@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""ScooterLab secure telemetry ingest server (ADR-0003 / TASK-SEC-03).
+"""ScooterLab secure telemetry ingest server (ADR-0003 / ADR-0005 / TASK-SEC-03).
 
 Requires `Authorization: Bearer <SCOOTERLAB_BEARER_TOKEN>`, validates the uploaded
-`.slab` v1 binary (magic + CRC32) before persisting, and triggers `analyze.py`.
+`.slab` v1 binary (magic + CRC32) before persisting without overwriting existing
+sessions, and triggers `analyze.py`.
 Supports native TLS via `SCOOTERLAB_TLS_CERT` / `SCOOTERLAB_TLS_KEY` or running
 behind a local TLS reverse proxy / WireGuard ZTNA mesh (Tailscale / NetBird).
 """
@@ -13,10 +14,11 @@ import hmac
 import json
 import os
 import re
+import shutil
 import ssl
 import tempfile
 from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional
 
@@ -24,10 +26,33 @@ from analyze import analyze_file
 from slab_codec import read_slab
 
 SAFE_NAME_RE = re.compile(r"^[a-zA-Z0-9._-]{1,64}\.slab$")
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+READ_CHUNK_BYTES = 64 * 1024
+REQUEST_TIMEOUT_SEC = 15.0
+
+
+def _unique_session_path(sessions_dir: Path, filename: str) -> Path:
+    """Return a non-colliding destination path inside `sessions_dir`."""
+    candidate = sessions_dir / filename
+    if not candidate.exists():
+        return candidate
+
+    stem = candidate.stem
+    suffix = candidate.suffix
+    counter = 1
+    while True:
+        alt = sessions_dir / f"{stem}_{counter}{suffix}"
+        if not alt.exists():
+            return alt
+        counter += 1
 
 
 def make_handler(bearer_token: str, sessions_dir: Path, reports_dir: Path):
     class IngestHandler(BaseHTTPRequestHandler):
+        def setup(self) -> None:
+            super().setup()
+            self.request.settimeout(REQUEST_TIMEOUT_SEC)
+
         def _send_json(self, status: HTTPStatus, payload: dict) -> None:
             body = json.dumps(payload).encode("utf-8")
             self.send_response(status)
@@ -35,6 +60,12 @@ def make_handler(bearer_token: str, sessions_dir: Path, reports_dir: Path):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path == "/health":
+                self._send_json(HTTPStatus.OK, {"status": "ok"})
+                return
+            self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
 
         def do_POST(self) -> None:  # noqa: N802
             if self.path != "/upload":
@@ -52,15 +83,31 @@ def make_handler(bearer_token: str, sessions_dir: Path, reports_dir: Path):
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_filename"})
                 return
 
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 50 * 1024 * 1024:
+            raw_len = self.headers.get("Content-Length", "0")
+            try:
+                length = int(raw_len)
+            except ValueError:
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_content_length"})
                 return
 
-            raw = self.rfile.read(length)
+            if length <= 0 or length > MAX_UPLOAD_BYTES:
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_content_length"})
+                return
+
             with tempfile.NamedTemporaryFile(suffix=".slab", delete=False) as tmp:
-                tmp.write(raw)
                 tmp_path = Path(tmp.name)
+                remaining = length
+                while remaining > 0:
+                    chunk = self.rfile.read(min(READ_CHUNK_BYTES, remaining))
+                    if not chunk:
+                        break
+                    tmp.write(chunk)
+                    remaining -= len(chunk)
+
+            if remaining != 0:
+                tmp_path.unlink(missing_ok=True)
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": "truncated_body"})
+                return
 
             try:
                 read_slab(tmp_path)
@@ -70,9 +117,8 @@ def make_handler(bearer_token: str, sessions_dir: Path, reports_dir: Path):
                 return
 
             sessions_dir.mkdir(parents=True, exist_ok=True)
-            dest = sessions_dir / filename
-            dest.write_bytes(raw)
-            tmp_path.unlink(missing_ok=True)
+            dest = _unique_session_path(sessions_dir, filename)
+            shutil.move(str(tmp_path), str(dest))
 
             kpi, report_path = analyze_file(dest, label=dest.stem, reports_dir=reports_dir)
             self._send_json(
@@ -100,8 +146,8 @@ def create_server(
     reports_dir: Path,
     tls_cert: Optional[str] = None,
     tls_key: Optional[str] = None,
-) -> HTTPServer:
-    server = HTTPServer((host, port), make_handler(bearer_token, sessions_dir, reports_dir))
+) -> ThreadingHTTPServer:
+    server = ThreadingHTTPServer((host, port), make_handler(bearer_token, sessions_dir, reports_dir))
     if tls_cert and tls_key:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(certfile=tls_cert, keyfile=tls_key)
