@@ -15,7 +15,7 @@
 | **Modulo GNSS** | **u-blox MAX-M10S / NEO-M10** (GPS+Galileo, 5–10 Hz) | NEO-M8N (5 Hz) | -40 / +85 °C | **UART1** (115200 bps) | 15–22 € |
 | **Storage Offline** | Modulo microSD SPI + **SanDisk / Samsung High Endurance 32 GB** | Industrial SLC/pSLC microSD | -25 / +85 °C | **SPI** (CS dedicato) | 10–14 € |
 | **Alimentazione 12V→5V** | Buck DC-DC automotive step-down 12 V → 5 V (≥2 A, es. LM2596/MP1584 schermato) | Modulo DC-DC isolato 9–36 V → 5 V | -40 / +85 °C | Positivo sottochiave | 5–10 € |
-| **Protezione & Hold-Up** | Portafusibile stagno + fusibile **1 A** + diodo Schottky + condensatore hold-up + partitore rilevamento `IGN` | — | -40 / +85 °C | GPIO ADC / Interrupt | 4–6 € |
+| **Protezione & Hold-Up** | Portafusibile stagno + fusibile **1 A** + **TVS `SMBJ18A`** (12 V) + Schottky `SS34` + **`4700 µF / 10 V` low-ESR** (inrush `2.2 Ω`) + partitore `IGN` | — | -40 / +85 °C | GPIO ADC / Interrupt | 5–8 € |
 | **CAN Transceiver (Liv. 1/2)** | **TI `SN65HVD230`** (3,3 V, modalità *listen-only*) | MCP2562FD | -40 / +125 °C | **TWAI** (OBD CAN-H/L) | 3–5 € |
 | **Meccanica & Cablaggio** | Scatola stagna **IP65**, piastra in **PETG/ASA** (mai PLA), connettori **JST-PH/SH** (mai Dupont), Posi-Tap | Pressacavi PG7 | ≥ 85 °C (PETG/ASA) | — | 12–18 € |
 
@@ -27,11 +27,14 @@
 
 | Funzione | Segnale | GPIO ESP32-S3 | Note Tecniche |
 | :--- | :--- | :--- | :--- |
-| **Bus SPI2 (IMU + microSD)** | `SCK` | `GPIO12` | Bus SPI condiviso ad alta velocità, cavi < 10 cm |
+| **Bus SPI2 (Smart IMU dedicato)** | `SCK` | `GPIO12` | Bus dedicato ad alta frequenza (1–4 kHz), cavi < 10 cm |
 | | `MOSI` | `GPIO11` | |
 | | `MISO` | `GPIO13` | |
 | **Smart IMU (`ISM330IS`)** | `CS_IMU` | `GPIO10` | Chip Select dedicato IMU (priorità campionamento) |
 | | `INT1_IMU` | `GPIO9` | Interrupt data-ready / evento ISPU |
+| **Bus SPI3 (microSD dedicato)** | `SD_SCK` | `GPIO36` | Bus separato per evitare stalli IMU su flush SD (su Octal PSRAM usare GPIO7/8/15) |
+| | `SD_MOSI` | `GPIO35` | |
+| | `SD_MISO` | `GPIO37` | |
 | **microSD High Endurance** | `CS_SD` | `GPIO14` | Chip Select dedicato microSD (alimentazione 5 V / LDO locale) |
 | **GNSS (UART1)** | `GPS_RX` (← TX modulo) | `GPIO18` | Incrociare TX modulo → RX MCU |
 | | `GPS_TX` (→ RX modulo) | `GPIO17` | Incrociare RX modulo → TX MCU |
