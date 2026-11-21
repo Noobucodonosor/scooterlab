@@ -18,14 +18,21 @@ services:
       SCOOTERLAB_INGEST_PORT: 8500
       SCOOTERLAB_SESSIONS_DIR: /data/sessions
       SCOOTERLAB_REPORTS_DIR: /data/reports
-      SCOOTERLAB_TLS_CERT: ${SCOOTERLAB_TLS_CERT:-/etc/scooterlab/certs/server.crt}
-      SCOOTERLAB_TLS_KEY: ${SCOOTERLAB_TLS_KEY:-/etc/scooterlab/certs/server.key}
+      SCOOTERLAB_GARAGE_STATE: /data/state/garage_state.json
+      SCOOTERLAB_ATLAS_DIR: /data/local_atlas
+      SCOOTERLAB_MODELS_DIR: /data/local_models
+      SCOOTERLAB_MQTT_ENABLED: ${SCOOTERLAB_MQTT_ENABLED:-0}
+      SCOOTERLAB_TLS_CERT: ${SCOOTERLAB_TLS_CERT:-/etc/scooterlab/certs/ingest.crt}
+      SCOOTERLAB_TLS_KEY: ${SCOOTERLAB_TLS_KEY:-/etc/scooterlab/certs/ingest.key}
     ports:
       - "127.0.0.1:8500:8500"
     volumes:
       - ../tools/sessions:/data/sessions
       - ../tools/reports:/data/reports
+      - ../tools/local_atlas:/data/local_atlas:ro
+      - ../tools/local_models:/data/local_models
       - ../certs:/etc/scooterlab/certs:ro
+      - garage_state:/data/state
 
   mosquitto-uns:
     image: eclipse-mosquitto:2
@@ -39,3 +46,4 @@ services:
 
 volumes:
   mosquitto_data:
+  garage_state:

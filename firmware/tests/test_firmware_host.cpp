@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
     assert(scooterlab::nmea_parse_line(gga, 1000, nmea_gps));
     assert(nmea_gps.fix == 3 && nmea_gps.sats == 10 && nmea_gps.hdop_x10 == 11);
     assert(nmea_gps.lat_e7 == 443500000 && nmea_gps.speed_cms >= 995 && nmea_gps.speed_cms <= 1005);
+    assert(!scooterlab::nmea_parse_line("$G,1,2,3,4,5*55", 1000, nmea_gps));
 
     // 7. Verify session naming & upload sync marker
     char sess_path[256];

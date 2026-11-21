@@ -1,4 +1,5 @@
 #include "imu_ism330is.h"
+#include "board_pins.h"
 
 #ifdef ESP_PLATFORM
 #include "driver/spi_master.h"
