@@ -11,7 +11,7 @@ import argparse
 import math
 from pathlib import Path
 
-from slab_codec import GpsRecord, ImuRecord, SlabHeader, write_slab
+from slab_codec import CanRecord, GpsRecord, HealthRecord, ImuRecord, SlabHeader, write_slab
 
 
 def generate_synthetic_session(
@@ -82,7 +82,11 @@ def generate_synthetic_session(
         )
 
     dist_m = 0.0
+    x_m = 0.0
+    y_m = 0.0
     total_gps = duration_s * gps_hz
+    health_records = []
+    can_records = []
     for j in range(total_gps):
         t = j / gps_hz
         t_ms = int(round(t * 1000))
@@ -97,9 +101,13 @@ def generate_synthetic_session(
             frac = (t - 48.0) / 12.0
             speed_ms = max(0.0, 12.5 * (1.0 - frac))
 
-        dist_m += speed_ms / gps_hz
-        lat = base_lat + (dist_m / 111_111.0)
-        lon = base_lon + (0.0002 * math.sin(t / 10.0))
+        step_m = speed_ms / gps_hz
+        dist_m += step_m
+        heading = 0.045 * t + 0.65 * math.sin(0.14 * t)
+        x_m += step_m * math.sin(heading)
+        y_m += step_m * math.cos(heading)
+        lat = base_lat + (y_m / 111_111.0)
+        lon = base_lon + (x_m / (111_111.0 * math.cos(math.radians(base_lat))))
 
         gps_records.append(
             GpsRecord(
@@ -113,15 +121,36 @@ def generate_synthetic_session(
                 hdop_x10=9,
             )
         )
+        if j % gps_hz == 0:
+            vbat = 14320 + int(round(90 * math.sin(0.2 * t)))
+            temp_dc = 310 + int(round(t * 0.6))
+            health_records.append(HealthRecord(t_ms=t_ms, vbat_mv=vbat, temp_dc=temp_dc))
+            if build_level >= 1:
+                rpm = int(3200 + speed_ms * 260)
+                can_records.append(
+                    CanRecord(
+                        t_ms=t_ms,
+                        can_id=0x18FEF100,
+                        dlc=4,
+                        data=rpm.to_bytes(2, "little") + b"\x32\x00",
+                    )
+                )
 
     header = SlabHeader(
         build_level=build_level,
         imu_hz=imu_hz,
         gps_hz=gps_hz,
-        flags=0,
+        flags=2 if build_level >= 1 else 0,
         start_epoch_s=1_795_143_600,
     )
-    return write_slab(out_path, header, imu_records, gps_records)
+    return write_slab(
+        out_path,
+        header,
+        imu_records,
+        gps_records,
+        can_records=can_records,
+        health_records=health_records,
+    )
 
 
 def main() -> None:

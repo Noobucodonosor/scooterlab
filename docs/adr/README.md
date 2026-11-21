@@ -15,6 +15,7 @@ Questa cartella raccoglie gli **Architecture Decision Records (ADR)** e il **Mas
 | **[ADR-0005](./0005-smart-garage-container-stack-tls.md)** | Smart Garage Container Stack, TLS End-to-End & Hardening Ingest | Accettato | **P0 — Critica** | Daniele Bertuccio / Audit Multifocale |
 | **[ADR-0006](./0006-dual-spi-buffer-holdup-automotive.md)** | Dual-SPI (`SPI2`/`SPI3`), Ring-Buffer SD 4 KB, Hold-Up & Protezione TVS 12 V | Accettato | **P1 — Alta** | Daniele Bertuccio / Audit Multifocale |
 | **[ADR-0007](./0007-estensione-slab-can-health.md)** | Estensione `.slab` v1 (`REC_CAN` e `REC_HEALTH`) & Report Avanzato | Accettato | **P2 — Media** | Daniele Bertuccio / Audit Multifocale |
+| **[ADR-0008](./0008-smart-garage-webapp-officina.md)** | Smart Garage Web App, Procedure Guidate Officina & Digital Twin 3D Offline | Accettato | **P1 — Alta** | Daniele Bertuccio / Archeologia 2026 |
 
 ---
 
@@ -77,3 +78,4 @@ flowchart LR
 | **TASK-DATA-04** | `#14` | [ADR-0004](./0004-pipeline-dati-telemetria-uns-automazione.md) | Fix `analyze.py` (GPS fix/HDOP, FFT/Welch reale) & recovery `.slab` | `tools/analyze.py`, `tools/slab_codec.py` | **P1 — Alta** | Completato | `@Noobucodonosor` |
 | **TASK-QA-01** | `#15` | — | Pipeline GitHub Actions CI (`pre_release_check`, `pytest`, host C++17) | `.github/workflows/ci.yml` | **P1 — Alta** | Completato | `@Noobucodonosor` |
 | **TASK-DATA-05** | `#16` | [ADR-0007](./0007-estensione-slab-can-health.md) | Estensione `.slab` v1 (`REC_CAN`/`REC_HEALTH`) + `report.html` + loop Livello 2 | `docs/adr/0007-estensione-slab-can-health.md`, `tools/templates/report.html` | **P2 — Media** | Completato | `@Noobucodonosor` |
+| **TASK-APP-01** | `#21` | [ADR-0008](./0008-smart-garage-webapp-officina.md) | Smart Garage Web App, Procedure Guidate Officina & Digital Twin 3D Offline | `tools/garage_store.py`, `tools/webapp/*`, `tools/ingest_server.py` | **P1 — Alta** | Completato | `@Noobucodonosor` |
