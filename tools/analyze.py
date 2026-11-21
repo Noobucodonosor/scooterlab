@@ -398,11 +398,24 @@ def analyze_session_dict(
     ]
 
     base_kpi_dict: Optional[Dict[str, Any]] = None
+    base_speed_series: List[Dict[str, float]] = []
+    base_spectrum_series: List[Dict[str, float]] = []
     deltas: Dict[str, Optional[float]] = {}
     if baseline_path is not None and baseline_path.exists():
         bh, bi, bg, _, _ = read_slab_full(baseline_path, recover=True)
         base_kpi = compute_kpis(bh, bi, bg)
         base_kpi_dict = asdict(base_kpi)
+        base_valid_gps = filter_valid_gps(bg)
+        base_speed_series = _downsample(
+            [{"t_s": round(g.t_ms / 1000.0, 2), "kmh": round((g.speed_cms / 100.0) * 3.6, 1)} for g in base_valid_gps],
+            240,
+        )
+        base_az = [r.az_mg / 1000.0 for r in bi]
+        base_spec, _ = compute_spectrum(base_az, bh.imu_hz)
+        base_spectrum_series = [
+            {"hz": round(hz, 2), "power": round(pwr, 4)}
+            for hz, pwr in _downsample(base_spec, 160)
+        ]
         deltas = {
             "zero_to_50_s": (
                 round(kpi.zero_to_50_s - base_kpi.zero_to_50_s, 2)
@@ -435,7 +448,9 @@ def analyze_session_dict(
         "deltas": deltas,
         "nyquist_hz": round(header.imu_hz / 2.0, 1),
         "speed_series": speed_series,
+        "baseline_speed_series": base_speed_series,
         "spectrum_series": spectrum_series,
+        "baseline_spectrum_series": base_spectrum_series,
         "gps_track": _build_local_track(gps, privacy_trim_m=privacy_trim_m),
         "privacy_trim_m": privacy_trim_m,
         "health_summary": health_summary,

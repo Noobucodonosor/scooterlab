@@ -160,7 +160,7 @@ def make_handler(
         def _build_overview(self) -> Dict[str, Any]:
             state = garage.load()
             odom = float(state.get("odometer_km", 29271.0))
-            schedule = [asdict(m) for m in compute_maintenance_schedule(odom)]
+            schedule = [asdict(m) for m in compute_maintenance_schedule(odom, warn_threshold_km=800)]
             plates = [
                 {**p, "available": (atlas_dir / p["filename"]).exists()}
                 for p in ATLAS_PLATES
@@ -266,6 +266,12 @@ def make_handler(
                 self._send_json(HTTPStatus.OK, {"status": "ok"})
                 return
 
+            if path == "/favicon.ico":
+                self.send_response(HTTPStatus.NO_CONTENT)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+
             if path in STATIC_FILES:
                 fname, ctype = STATIC_FILES[path]
                 target = WEBAPP_DIR / fname
@@ -306,6 +312,16 @@ def make_handler(
 
                 if path == "/api/overview":
                     self._send_json(HTTPStatus.OK, self._build_overview())
+                    return
+
+                if path == "/api/garage/export":
+                    body = json.dumps(garage.load(), indent=2, ensure_ascii=False).encode("utf-8")
+                    self.send_response(HTTPStatus.OK)
+                    self.send_header("Content-Type", "application/json; charset=utf-8")
+                    self.send_header("Content-Disposition", 'attachment; filename="scooterlab_garage_backup.json"')
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
                     return
 
                 if path.startswith("/api/sessions/"):
