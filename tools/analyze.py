@@ -11,10 +11,10 @@ from __future__ import annotations
 import argparse
 import html
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from string import Template
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from slab_codec import CanRecord, GpsRecord, HealthRecord, ImuRecord, SlabHeader, read_slab_full
 
@@ -322,6 +322,132 @@ def analyze_file(
         encoding="utf-8",
     )
     return kpi, report_path
+
+
+def _downsample(items: List[Any], max_len: int) -> List[Any]:
+    if len(items) <= max_len or max_len <= 1:
+        return items
+    step = (len(items) - 1) / (max_len - 1)
+    return [items[int(round(i * step))] for i in range(max_len)]
+
+
+def _build_local_track(
+    gps_records: List[GpsRecord],
+    privacy_trim_m: float = 0.0,
+) -> List[Dict[str, float]]:
+    valid = filter_valid_gps(gps_records)
+    if len(valid) < 2:
+        return []
+
+    lat0 = valid[0].lat_e7 / 1e7
+    lon0 = valid[0].lon_e7 / 1e7
+    cos_lat = math.cos(math.radians(lat0)) or 1.0
+
+    raw_pts: List[Tuple[float, float, float, float]] = []
+    cum_dist = 0.0
+    prev_x = 0.0
+    prev_y = 0.0
+    for idx, g in enumerate(valid):
+        x = ((g.lon_e7 / 1e7) - lon0) * 111_111.0 * cos_lat
+        y = ((g.lat_e7 / 1e7) - lat0) * 111_111.0
+        if idx > 0:
+            cum_dist += math.hypot(x - prev_x, y - prev_y)
+        prev_x, prev_y = x, y
+        v_kmh = round((g.speed_cms / 100.0) * 3.6, 1)
+        raw_pts.append((x, y, v_kmh, cum_dist))
+
+    total_dist = raw_pts[-1][3]
+    if privacy_trim_m > 0 and total_dist > (2.2 * privacy_trim_m):
+        trimmed = [
+            p for p in raw_pts
+            if privacy_trim_m <= p[3] <= (total_dist - privacy_trim_m)
+        ]
+    else:
+        trimmed = raw_pts
+
+    if not trimmed:
+        trimmed = raw_pts
+
+    pts = [
+        {"x": round(p[0], 1), "y": round(p[1], 1), "kmh": p[2], "dist_m": round(p[3], 1)}
+        for p in trimmed
+    ]
+    return _downsample(pts, 260)
+
+
+def analyze_session_dict(
+    slab_path: Path,
+    baseline_path: Optional[Path] = None,
+    recover: bool = False,
+    privacy_trim_m: float = 0.0,
+) -> Dict[str, Any]:
+    """Return full telemetry analysis + downsampled series as a JSON-serializable dict."""
+    header, imu, gps, can_recs, health_recs = read_slab_full(slab_path, recover=recover)
+    kpi = compute_kpis(header, imu, gps)
+    az_vals = [r.az_mg / 1000.0 for r in imu]
+    spectrum, _ = compute_spectrum(az_vals, header.imu_hz)
+
+    valid_gps = filter_valid_gps(gps)
+    speed_series = _downsample(
+        [{"t_s": round(g.t_ms / 1000.0, 2), "kmh": round((g.speed_cms / 100.0) * 3.6, 1)} for g in valid_gps],
+        240,
+    )
+    spectrum_series = [
+        {"hz": round(hz, 2), "power": round(pwr, 4)}
+        for hz, pwr in _downsample(spectrum, 160)
+    ]
+
+    base_kpi_dict: Optional[Dict[str, Any]] = None
+    deltas: Dict[str, Optional[float]] = {}
+    if baseline_path is not None and baseline_path.exists():
+        bh, bi, bg, _, _ = read_slab_full(baseline_path, recover=True)
+        base_kpi = compute_kpis(bh, bi, bg)
+        base_kpi_dict = asdict(base_kpi)
+        deltas = {
+            "zero_to_50_s": (
+                round(kpi.zero_to_50_s - base_kpi.zero_to_50_s, 2)
+                if kpi.zero_to_50_s is not None and base_kpi.zero_to_50_s is not None
+                else None
+            ),
+            "max_speed_kmh": round(kpi.max_speed_kmh - base_kpi.max_speed_kmh, 1),
+            "avg_speed_kmh": round(kpi.avg_speed_kmh - base_kpi.avg_speed_kmh, 1),
+            "comfort_rms_g": round(kpi.comfort_rms_g - base_kpi.comfort_rms_g, 3),
+        }
+
+    health_summary: Dict[str, Any] = {}
+    if health_recs:
+        v_min = min(r.vbat_mv for r in health_recs) / 1000.0
+        v_max = max(r.vbat_mv for r in health_recs) / 1000.0
+        t_max = max(r.temp_dc for r in health_recs) / 10.0
+        health_summary = {
+            "vbat_min_v": round(v_min, 2),
+            "vbat_max_v": round(v_max, 2),
+            "temp_max_c": round(t_max, 1),
+            "regulator_ok": 13.8 <= v_max <= 14.9 and v_min >= 12.0,
+        }
+
+    return {
+        "session": slab_path.name,
+        "recovered": recover,
+        "kpi": asdict(kpi),
+        "baseline_session": baseline_path.name if baseline_path else None,
+        "baseline_kpi": base_kpi_dict,
+        "deltas": deltas,
+        "nyquist_hz": round(header.imu_hz / 2.0, 1),
+        "speed_series": speed_series,
+        "spectrum_series": spectrum_series,
+        "gps_track": _build_local_track(gps, privacy_trim_m=privacy_trim_m),
+        "privacy_trim_m": privacy_trim_m,
+        "health_summary": health_summary,
+        "can_count": len(can_recs),
+        "record_counts": {
+            "imu": len(imu),
+            "gps": len(gps),
+            "gps_valid": len(valid_gps),
+            "can": len(can_recs),
+            "health": len(health_recs),
+        },
+    }
 
 
 def main() -> None:

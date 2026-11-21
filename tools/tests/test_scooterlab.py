@@ -15,6 +15,7 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 from analyze import analyze_file, compute_dominant_frequency, compute_kpis  # noqa: E402
+from garage_store import GARAGE_PROCEDURES, GarageStore, evaluate_measurement  # noqa: E402
 from ingest_server import create_server  # noqa: E402
 from maintenance_tracker import build_uns_payload, compute_maintenance_schedule  # noqa: E402
 from make_test_session import generate_synthetic_session  # noqa: E402
@@ -244,3 +245,82 @@ def test_slab_can_health_roundtrip_and_report_template(tmp_path: Path) -> None:
     html_text = report.read_text(encoding="utf-8")
     assert "14.35–14.35 V (OK)" in html_text
     assert "Spettro Vibrazioni Asse Z" in html_text
+
+
+def test_garage_store_specs_procedures_and_persistence(tmp_path: Path) -> None:
+    assert evaluate_measurement("regulator_v", 14.35)["status"] == "OK"
+    assert evaluate_measurement("regulator_v", 15.6)["status"] == "OUT_OF_SPEC"
+    assert evaluate_measurement("valve_in_mm", 0.12)["status"] == "OK"
+    assert evaluate_measurement("cvt_roller_mm", 17.2)["status"] == "OUT_OF_SPEC"
+    assert len(GARAGE_PROCEDURES) >= 5
+
+    store = GarageStore(tmp_path / "garage_state.json")
+    store.set_odometer(29500.5)
+    store.record_check("regulator_v", 14.4, "misura a 2000 rpm")
+    store.toggle_procedure_step("service_30k", 0, True)
+    store.log_maintenance("olio_motore", 29500.5, "0.70L 10W-30")
+
+    reloaded = GarageStore(tmp_path / "garage_state.json").load()
+    assert reloaded["odometer_km"] == 29500.5
+    assert reloaded["factory_checks"]["regulator_v"]["status"] == "OK"
+    assert reloaded["procedure_progress"]["service_30k"] == [0]
+    assert reloaded["maintenance_log"][0]["item"] == "olio_motore"
+
+
+def test_webapp_api_and_demo_flow(tmp_path: Path) -> None:
+    token = "test-webapp-token"
+    srv = create_server(
+        "127.0.0.1",
+        0,
+        token,
+        tmp_path / "sessions",
+        tmp_path / "reports",
+        state_path=tmp_path / "garage_state.json",
+    )
+    port = srv.server_address[1]
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        # 1. Static Web App & JS assets
+        for path in ("/", "/styles.css", "/app.js", "/scooter3d.js"):
+            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+            conn.request("GET", path)
+            r = conn.getresponse()
+            assert r.status == 200
+            r.read()
+            conn.close()
+
+        # 2. Generate demo A/B sessions
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("POST", "/api/sessions/demo")
+        r = conn.getresponse()
+        demo = json.loads(r.read().decode("utf-8"))
+        assert r.status == 200
+        assert "demo_post_rulli.slab" in demo["created"]
+        conn.close()
+
+        # 3. Inspect A/B session detail with privacy trim
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/api/sessions/demo_post_rulli.slab?baseline=demo_pre_30k.slab&privacy=1")
+        r = conn.getresponse()
+        detail = json.loads(r.read().decode("utf-8"))
+        assert r.status == 200
+        assert detail["baseline_session"] == "demo_pre_30k.slab"
+        assert detail["deltas"]["zero_to_50_s"] < 0
+        assert detail["health_summary"]["regulator_ok"] is True
+        assert detail["can_count"] > 0
+        assert len(detail["gps_track"]) >= 2
+        conn.close()
+
+        # 4. Save factory check via API
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        payload = json.dumps({"spec_id": "valve_in_mm", "value": 0.12}).encode("utf-8")
+        conn.request("POST", "/api/garage/check", body=payload, headers={"Content-Type": "application/json"})
+        r = conn.getresponse()
+        chk = json.loads(r.read().decode("utf-8"))
+        assert r.status == 200
+        assert chk["result"]["status"] == "OK"
+        conn.close()
+    finally:
+        srv.shutdown()
+        srv.server_close()
