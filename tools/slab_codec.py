@@ -18,18 +18,23 @@ FORMAT_VERSION = 1
 REC_IMU = 1
 REC_GPS = 2
 REC_CAN = 3
+REC_HEALTH = 4
 
 HEADER_BODY_FMT = "<4sBBHHHII8s"  # 28 bytes
 HEADER_FMT = "<4sBBHHHII8sI"     # 32 bytes
 REC_HDR_FMT = "<BBH"             # 4 bytes
 IMU_FMT = "<Ihhhhhhhh"           # 20 bytes
 GPS_FMT = "<IiiHHBBH"            # 20 bytes
+CAN_FMT = "<IIB3x8s"             # 20 bytes
+HEALTH_FMT = "<IHh"              # 8 bytes
 FOOTER_FMT = "<4sI"              # 8 bytes
 
 HEADER_SIZE = struct.calcsize(HEADER_FMT)
 REC_HDR_SIZE = struct.calcsize(REC_HDR_FMT)
 IMU_SIZE = struct.calcsize(IMU_FMT)
 GPS_SIZE = struct.calcsize(GPS_FMT)
+CAN_SIZE = struct.calcsize(CAN_FMT)
+HEALTH_SIZE = struct.calcsize(HEALTH_FMT)
 FOOTER_SIZE = struct.calcsize(FOOTER_FMT)
 
 
@@ -69,11 +74,28 @@ class GpsRecord:
     hdop_x10: int
 
 
+@dataclass(frozen=True)
+class CanRecord:
+    t_ms: int
+    can_id: int
+    dlc: int
+    data: bytes
+
+
+@dataclass(frozen=True)
+class HealthRecord:
+    t_ms: int
+    vbat_mv: int
+    temp_dc: int
+
+
 def write_slab(
     path: Path | str,
     header: SlabHeader,
     imu_records: Iterable[ImuRecord],
     gps_records: Iterable[GpsRecord],
+    can_records: Iterable[CanRecord] = (),
+    health_records: Iterable[HealthRecord] = (),
 ) -> Path:
     """Serialize header + IMU/GPS records into a CRC32-verified `.slab` v1 file."""
     path = Path(path)
@@ -117,6 +139,18 @@ def write_slab(
         )
         count += 1
 
+    for c in can_records:
+        payload.extend(struct.pack(REC_HDR_FMT, REC_CAN, CAN_SIZE, 0))
+        payload.extend(
+            struct.pack(CAN_FMT, c.t_ms, c.can_id, c.dlc, c.data[:8].ljust(8, b"\x00"))
+        )
+        count += 1
+
+    for h in health_records:
+        payload.extend(struct.pack(REC_HDR_FMT, REC_HEALTH, HEALTH_SIZE, 0))
+        payload.extend(struct.pack(HEALTH_FMT, h.t_ms, h.vbat_mv, h.temp_dc))
+        count += 1
+
     hdr_body = struct.pack(
         HEADER_BODY_FMT,
         MAGIC_HEADER,
@@ -142,10 +176,14 @@ def write_slab(
     return path
 
 
-def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRecord]]:
-    """Read and validate a `.slab` v1 binary telemetry file."""
+def read_slab_full(
+    path: Path | str,
+    recover: bool = False,
+) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRecord], List[CanRecord], List[HealthRecord]]:
+    """Read `.slab` v1 including optional `REC_CAN` (3) and `REC_HEALTH` (4) records."""
     raw = Path(path).read_bytes()
-    if len(raw) < HEADER_SIZE + FOOTER_SIZE:
+    min_size = HEADER_SIZE if recover else (HEADER_SIZE + FOOTER_SIZE)
+    if len(raw) < min_size:
         raise ValueError("File .slab troppo corto o corrotto")
 
     hdr_body = raw[:28]
@@ -171,24 +209,38 @@ def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRe
     if calc_hdr_crc != stored_hdr_crc:
         raise ValueError("Header CRC32 mismatch")
 
-    payload = raw[HEADER_SIZE:-FOOTER_SIZE]
-    footer_magic, stored_payload_crc = struct.unpack(FOOTER_FMT, raw[-FOOTER_SIZE:])
-    if footer_magic != MAGIC_FOOTER:
-        raise ValueError(f"Magic footer non valido: {footer_magic!r}")
+    has_footer = False
+    if len(raw) >= HEADER_SIZE + FOOTER_SIZE:
+        footer_magic, stored_payload_crc = struct.unpack(FOOTER_FMT, raw[-FOOTER_SIZE:])
+        if footer_magic == MAGIC_FOOTER:
+            has_footer = True
+            payload = raw[HEADER_SIZE:-FOOTER_SIZE]
+            calc_payload_crc = zlib.crc32(payload) & 0xFFFFFFFF
+            if calc_payload_crc != stored_payload_crc:
+                raise ValueError("Payload CRC32 mismatch")
+        elif not recover:
+            raise ValueError(f"Magic footer non valido: {footer_magic!r}")
+    elif not recover:
+        raise ValueError("File .slab privo di footer END!")
 
-    calc_payload_crc = zlib.crc32(payload) & 0xFFFFFFFF
-    if calc_payload_crc != stored_payload_crc:
-        raise ValueError("Payload CRC32 mismatch")
+    if not has_footer:
+        payload = raw[HEADER_SIZE:]
 
     imu_records: List[ImuRecord] = []
     gps_records: List[GpsRecord] = []
+    can_records: List[CanRecord] = []
+    health_records: List[HealthRecord] = []
     offset = 0
     while offset < len(payload):
         if offset + REC_HDR_SIZE > len(payload):
+            if recover:
+                break
             raise ValueError("Record header troncato")
         rec_type, rec_len, _ = struct.unpack_from(REC_HDR_FMT, payload, offset)
         offset += REC_HDR_SIZE
         if offset + rec_len > len(payload):
+            if recover:
+                break
             raise ValueError("Record payload troncato")
         chunk = payload[offset : offset + rec_len]
         offset += rec_len
@@ -197,6 +249,13 @@ def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRe
             imu_records.append(ImuRecord(*struct.unpack(IMU_FMT, chunk)))
         elif rec_type == REC_GPS and rec_len == GPS_SIZE:
             gps_records.append(GpsRecord(*struct.unpack(GPS_FMT, chunk)))
+        elif rec_type == REC_CAN and rec_len == CAN_SIZE:
+            t_ms, can_id, dlc, data = struct.unpack(CAN_FMT, chunk)
+            can_records.append(CanRecord(t_ms=t_ms, can_id=can_id, dlc=dlc, data=data))
+        elif rec_type == REC_HEALTH and rec_len == HEALTH_SIZE:
+            health_records.append(HealthRecord(*struct.unpack(HEALTH_FMT, chunk)))
+        elif recover and rec_type not in (REC_IMU, REC_GPS, REC_CAN, REC_HEALTH):
+            break
 
     header = SlabHeader(
         version=version,
@@ -207,4 +266,13 @@ def read_slab(path: Path | str) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRe
         start_epoch_s=start_epoch_s,
         record_count=record_count,
     )
+    return header, imu_records, gps_records, can_records, health_records
+
+
+def read_slab(
+    path: Path | str,
+    recover: bool = False,
+) -> Tuple[SlabHeader, List[ImuRecord], List[GpsRecord]]:
+    """Read and validate a `.slab` v1 binary telemetry file (backward-compatible 3-tuple)."""
+    header, imu_records, gps_records, _, _ = read_slab_full(path, recover=recover)
     return header, imu_records, gps_records

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from analyze import analyze_file
+from mqtt_publisher import publish_uns_summary
 from slab_codec import read_slab
 
 SAFE_NAME_RE = re.compile(r"^[a-zA-Z0-9._-]{1,64}\.slab$")
@@ -121,6 +122,16 @@ def make_handler(bearer_token: str, sessions_dir: Path, reports_dir: Path):
             shutil.move(str(tmp_path), str(dest))
 
             kpi, report_path = analyze_file(dest, label=dest.stem, reports_dir=reports_dir)
+            if os.environ.get("SCOOTERLAB_MQTT_ENABLED", "0") == "1":
+                try:
+                    odom = float(os.environ.get("SCOOTERLAB_ODOMETER_KM", "0")) + kpi.distance_km
+                    publish_uns_summary(
+                        odom,
+                        {"distance_km": kpi.distance_km, "max_speed_kmh": kpi.max_speed_kmh},
+                    )
+                except Exception as exc:
+                    print(f"[ingest] Avviso UNS/MQTT: {exc}")
+
             self._send_json(
                 HTTPStatus.OK,
                 {

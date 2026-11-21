@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<title>ScooterLab Report — ${session_name}</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background:#020617; color:#e2e8f0; margin:0; padding:24px; }
+  .wrap { max-width:920px; margin:0 auto; }
+  h1 { margin:0 0 4px; font-size:24px; }
+  .meta { color:#94a3b8; margin-bottom:20px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:20px; }
+  .card { background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:14px; }
+  .card .k { color:#94a3b8; font-size:12px; text-transform:uppercase; }
+  .card .v { font-size:22px; font-weight:700; margin-top:4px; }
+  .charts { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px; }
+  table { width:100%; border-collapse:collapse; background:#0f172a; border-radius:8px; overflow:hidden; margin-top:16px; }
+  th, td { padding:10px 12px; border-bottom:1px solid #1e293b; text-align:left; font-size:14px; }
+  th { color:#94a3b8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ScooterLab — ${label}</h1>
+  <div class="meta">Sessione: <code>${session_name}</code> · Livello ${build_level} · Durata ${duration_s} s · Distanza ${distance_km} km</div>
+  <div class="grid">
+    <div class="card"><div class="k">0–50 km/h</div><div class="v">${z50_str}${z50_delta}</div></div>
+    <div class="card"><div class="k">Velocità Max</div><div class="v">${max_speed_kmh} km/h${vmax_delta}</div></div>
+    <div class="card"><div class="k">Piega Max SX / DX</div><div class="v">${max_lean_left_deg}° / ${max_lean_right_deg}°</div></div>
+    <div class="card"><div class="k">Indice Comfort (RMS)</div><div class="v">${comfort_rms_g} g${comf_delta}</div></div>
+    <div class="card"><div class="k">Vibrazione Dominante</div><div class="v">${dominant_vib_hz} Hz</div></div>
+    <div class="card"><div class="k">Regolatore SYM / CAN</div><div class="v">${regulator_box} / ${can_box}</div></div>
+  </div>
+  <div class="charts">
+    ${speed_svg}
+    ${spectrum_svg}
+  </div>
+  <table>
+    <thead><tr><th>Fascia Angolo di Piega</th><th>Campioni</th><th>Quota</th></tr></thead>
+    <tbody>${hist_rows}</tbody>
+  </table>
+</div>
+</body>
+</html>

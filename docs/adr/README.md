@@ -13,6 +13,8 @@ Questa cartella raccoglie gli **Architecture Decision Records (ADR)** e il **Mas
 | **[ADR-0003](./0003-sicurezza-hardening-red-cra-privacy.md)** | Sicurezza, Hardening (RED EN 18031 / CRA-Ready) e Privacy | Accettato | **P0 — Critica** | Daniele Bertuccio / Audit RED-CRA |
 | **[ADR-0004](./0004-pipeline-dati-telemetria-uns-automazione.md)** | Pipeline Dati Telemetria, Unified Namespace (UNS) e Automazione Manutenzione | Accettato | **P1 — Alta** | Daniele Bertuccio / Audit 2026 |
 | **[ADR-0005](./0005-smart-garage-container-stack-tls.md)** | Smart Garage Container Stack, TLS End-to-End & Hardening Ingest | Accettato | **P0 — Critica** | Daniele Bertuccio / Audit Multifocale |
+| **[ADR-0006](./0006-dual-spi-buffer-holdup-automotive.md)** | Dual-SPI (`SPI2`/`SPI3`), Ring-Buffer SD 4 KB, Hold-Up & Protezione TVS 12 V | Accettato | **P1 — Alta** | Daniele Bertuccio / Audit Multifocale |
+| **[ADR-0007](./0007-estensione-slab-can-health.md)** | Estensione `.slab` v1 (`REC_CAN` e `REC_HEALTH`) & Report Avanzato | Accettato | **P2 — Media** | Daniele Bertuccio / Audit Multifocale |
 
 ---
 
@@ -71,7 +73,7 @@ flowchart LR
 | **TASK-HW-04** | `#10` | [ADR-0002](./0002-aggiornamento-hardware-sensori-2026.md) | Scaffold ESP-IDF compilabile (`CMakeLists.txt`) & fix `main.cpp` / `uploader.cpp` | `firmware/CMakeLists.txt`, `firmware/src/CMakeLists.txt`, `firmware/src/main.cpp`, `firmware/src/uploader.cpp` | **P0 — Critica** | In review | `@Noobucodonosor` |
 | **TASK-INFRA-01** | `#11` | [ADR-0005](./0005-smart-garage-container-stack-tls.md) | Smart Garage Container Stack, TLS End-to-End & Hardening `ingest_server.py` | `docker/*`, `tools/ingest_server.py`, `tools/mqtt_publisher.py` | **P0 — Critica** | In review | `@Noobucodonosor` |
 | **TASK-DOC-01** | `#12` | [ADR-0005](./0005-smart-garage-container-stack-tls.md) | Riallineamento `docs/adr/README.md`, `README.md` e guida montaggio | `docs/adr/README.md`, `README.md`, `docs/01-istruzioni-montaggio-livello-0.md` | **P0 — Critica** | In review | `@Noobucodonosor` |
-| **TASK-HW-05** | `#13` | [ADR-0002](./0002-aggiornamento-hardware-sensori-2026.md) | Dual-SPI (`SPI2`/`SPI3`), Ring-Buffer SD 4 KB, Hold-Up & TVS 12 V (nuovo ADR-0006) | `docs/bom-rev2-2026.md`, `firmware/src/slab_writer.cpp` | **P1 — Alta** | Open | `@Noobucodonosor` |
-| **TASK-DATA-04** | `#14` | [ADR-0004](./0004-pipeline-dati-telemetria-uns-automazione.md) | Fix `analyze.py` (GPS fix/HDOP, FFT/Welch reale) & recovery `.slab` | `tools/analyze.py`, `tools/slab_codec.py` | **P1 — Alta** | Open | `@Noobucodonosor` |
-| **TASK-QA-01** | `#15` | — | Pipeline GitHub Actions CI (`pre_release_check`, `pytest`, host C++17) | `.github/workflows/ci.yml` | **P1 — Alta** | Open | `@Noobucodonosor` |
-| **TASK-DATA-05** | `#16` | [ADR-0004](./0004-pipeline-dati-telemetria-uns-automazione.md) | Estensione `.slab` v1.1/v2 (`REC_CAN`/`REC_HEALTH`) + `report.html` (nuovo ADR-0007) | `docs/04-formato-slab.md`, `tools/templates/report.html` | **P2 — Media** | Open | `@Noobucodonosor` |
+| **TASK-HW-05** | `#13` | [ADR-0006](./0006-dual-spi-buffer-holdup-automotive.md) | Dual-SPI (`SPI2`/`SPI3`), Ring-Buffer SD 4 KB, Hold-Up & TVS 12 V | `docs/bom-rev2-2026.md`, `firmware/src/slab_writer.cpp` | **P1 — Alta** | In review | `@Noobucodonosor` |
+| **TASK-DATA-04** | `#14` | [ADR-0004](./0004-pipeline-dati-telemetria-uns-automazione.md) | Fix `analyze.py` (GPS fix/HDOP, FFT/Welch reale) & recovery `.slab` | `tools/analyze.py`, `tools/slab_codec.py` | **P1 — Alta** | In review | `@Noobucodonosor` |
+| **TASK-QA-01** | `#15` | — | Pipeline GitHub Actions CI (`pre_release_check`, `pytest`, host C++17) | `.github/workflows/ci.yml` | **P1 — Alta** | In review | `@Noobucodonosor` |
+| **TASK-DATA-05** | `#16` | [ADR-0007](./0007-estensione-slab-can-health.md) | Estensione `.slab` v1 (`REC_CAN`/`REC_HEALTH`) + `report.html` + loop Livello 2 | `docs/adr/0007-estensione-slab-can-health.md`, `tools/templates/report.html` | **P2 — Media** | In review | `@Noobucodonosor` |

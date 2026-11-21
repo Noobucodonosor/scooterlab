@@ -14,6 +14,7 @@ static constexpr uint8_t SLAB_VERSION = 1;
 static constexpr uint8_t SLAB_REC_IMU = 1;
 static constexpr uint8_t SLAB_REC_GPS = 2;
 static constexpr uint8_t SLAB_REC_CAN = 3;
+static constexpr uint8_t SLAB_REC_HEALTH = 4;
 
 typedef struct __attribute__((packed)) {
     char magic[4];          // "SLAB"
@@ -58,6 +59,20 @@ typedef struct __attribute__((packed)) {
 } slab_gps_rec_t;
 
 typedef struct __attribute__((packed)) {
+    uint32_t t_ms;
+    uint32_t can_id;
+    uint8_t dlc;
+    uint8_t reserved[3];
+    uint8_t data[8];
+} slab_can_rec_t;
+
+typedef struct __attribute__((packed)) {
+    uint32_t t_ms;
+    uint16_t vbat_mv;       // SYM regulator voltage (mV)
+    int16_t temp_dc;        // Enclosure temp (deci-Celsius, e.g. 255 = 25.5 C)
+} slab_health_rec_t;
+
+typedef struct __attribute__((packed)) {
     char magic[4];          // "END!"
     uint32_t payload_crc32; // CRC32 of all record bytes
 } slab_footer_t;
@@ -67,6 +82,8 @@ static_assert(sizeof(slab_header_t) == 32, "slab_header_t must be 32 bytes");
 static_assert(sizeof(slab_rec_hdr_t) == 4, "slab_rec_hdr_t must be 4 bytes");
 static_assert(sizeof(slab_imu_rec_t) == 20, "slab_imu_rec_t must be 20 bytes");
 static_assert(sizeof(slab_gps_rec_t) == 20, "slab_gps_rec_t must be 20 bytes");
+static_assert(sizeof(slab_can_rec_t) == 20, "slab_can_rec_t must be 20 bytes");
+static_assert(sizeof(slab_health_rec_t) == 8, "slab_health_rec_t must be 8 bytes");
 static_assert(sizeof(slab_footer_t) == 8, "slab_footer_t must be 8 bytes");
 }
 #endif

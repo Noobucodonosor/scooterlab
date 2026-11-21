@@ -69,14 +69,28 @@ int main(int argc, char **argv) {
         assert(writer.write_gps(gps));
     }
 
-    assert(writer.record_count() == 1100);
+    slab_can_rec_t can{};
+    can.t_ms = 10000;
+    can.can_id = 0x18FEF100u;
+    can.dlc = 4;
+    can.data[0] = 0x1A;
+    can.data[1] = 0x2B;
+    assert(writer.write_can(can));
+
+    slab_health_rec_t health{};
+    health.t_ms = 10000;
+    health.vbat_mv = 14350;
+    health.temp_dc = 315;
+    assert(writer.write_health(health));
+
+    assert(writer.record_count() == 1102);
     assert(writer.close_safe());
 
     // 4. Verify host-mode uploader accepts the generated file
     auto up = scooterlab::upload_slab_https(good_cfg, out_path, "cpp_test.slab", nullptr);
     assert(up.ok && up.http_status == 200 && up.bytes_sent > 20000);
 
-    printf("[C++ Firmware Test] PASS — generated %s (%zu bytes, 1100 records)\n",
+    printf("[C++ Firmware Test] PASS — generated %s (%zu bytes, 1102 records)\n",
            out_path, up.bytes_sent);
     return 0;
 }

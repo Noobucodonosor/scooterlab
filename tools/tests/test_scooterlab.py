@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import math
 import sys
 import threading
 from pathlib import Path
@@ -13,7 +14,7 @@ TOOLS = ROOT / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
-from analyze import analyze_file  # noqa: E402
+from analyze import analyze_file, compute_dominant_frequency, compute_kpis  # noqa: E402
 from ingest_server import create_server  # noqa: E402
 from maintenance_tracker import build_uns_payload, compute_maintenance_schedule  # noqa: E402
 from make_test_session import generate_synthetic_session  # noqa: E402
@@ -23,7 +24,14 @@ from slab_codec import (  # noqa: E402
     HEADER_SIZE,
     IMU_SIZE,
     REC_HDR_SIZE,
+    CanRecord,
+    GpsRecord,
+    HealthRecord,
+    ImuRecord,
+    SlabHeader,
     read_slab,
+    read_slab_full,
+    write_slab,
 )
 
 
@@ -173,3 +181,66 @@ def test_maintenance_tracker_and_uns_privacy() -> None:
     assert "vin" not in uns["summary"]
     assert "targa" not in uns["summary"]
     assert uns["summary"]["distance_km"] == 8.4
+
+
+def test_read_slab_recovery_from_truncated_file(tmp_path: Path) -> None:
+    slab = generate_synthetic_session(tmp_path / "full.slab", duration_s=4)
+    raw = slab.read_bytes()
+    # Truncate footer + 10 bytes of the last record
+    truncated = tmp_path / "truncated.slab"
+    truncated.write_bytes(raw[: -(FOOTER_SIZE + 10)])
+
+    try:
+        read_slab(truncated)
+        raise AssertionError("Strict read_slab should reject truncated file")
+    except ValueError:
+        pass
+
+    hdr, imus, gpss = read_slab(truncated, recover=True)
+    assert hdr.imu_hz == 50
+    assert len(imus) > 150
+    assert len(gpss) > 10
+
+
+def test_gps_filter_ignores_nofix_and_high_hdop() -> None:
+    hdr = SlabHeader(imu_hz=100, gps_hz=5)
+    # 0->60 km/h with fix=0 (no fix) and high HDOP should be ignored
+    gps = [
+        GpsRecord(t_ms=0, lat_e7=0, lon_e7=0, speed_cms=0, alt_dm=0, sats=0, fix=0, hdop_x10=99),
+        GpsRecord(t_ms=1000, lat_e7=0, lon_e7=0, speed_cms=1600, alt_dm=0, sats=4, fix=1, hdop_x10=80),
+        GpsRecord(t_ms=2000, lat_e7=0, lon_e7=0, speed_cms=500, alt_dm=100, sats=9, fix=3, hdop_x10=12),
+        GpsRecord(t_ms=4000, lat_e7=0, lon_e7=0, speed_cms=500, alt_dm=100, sats=9, fix=3, hdop_x10=12),
+    ]
+    kpi = compute_kpis(hdr, [], gps)
+    assert kpi.max_speed_kmh == 18.0
+    assert kpi.zero_to_50_s is None
+
+
+def test_dominant_frequency_full_session_fft() -> None:
+    # Place 28 Hz signal after sample 256 (0..300 quiet, 300..1024 at 28 Hz @ 100 Hz)
+    sample_hz = 100
+    az = [1.0] * 300 + [1.0 + 0.4 * math.sin(2.0 * math.pi * 28.0 * i / sample_hz) for i in range(724)]
+    dom_hz = compute_dominant_frequency(az, sample_hz)
+    assert abs(dom_hz - 28.0) <= 0.6
+
+
+def test_slab_can_health_roundtrip_and_report_template(tmp_path: Path) -> None:
+    hdr = SlabHeader(build_level=1, imu_hz=100, gps_hz=5)
+    imus = [
+        ImuRecord(t_ms=i * 10, ax_mg=0, ay_mg=0, az_mg=1000, gx_ddps=0, gy_ddps=0, gz_ddps=0, roll_cdeg=0, pitch_cdeg=0)
+        for i in range(40)
+    ]
+    gpss = [GpsRecord(t_ms=0, lat_e7=0, lon_e7=0, speed_cms=0, alt_dm=0, sats=8, fix=3, hdop_x10=12)]
+    cans = [CanRecord(t_ms=100, can_id=0x18FEF100, dlc=4, data=b"\x1A\x2B\x00\x00")]
+    healths = [HealthRecord(t_ms=100, vbat_mv=14350, temp_dc=315)]
+
+    path = write_slab(tmp_path / "ext.slab", hdr, imus, gpss, can_records=cans, health_records=healths)
+    h2, i2, g2, c2, hl2 = read_slab_full(path)
+    assert h2.record_count == len(imus) + len(gpss) + len(cans) + len(healths)
+    assert len(c2) == 1 and c2[0].can_id == 0x18FEF100
+    assert len(hl2) == 1 and hl2[0].vbat_mv == 14350
+
+    _, report = analyze_file(path, label="ext_test", reports_dir=tmp_path / "reports")
+    html_text = report.read_text(encoding="utf-8")
+    assert "14.35–14.35 V (OK)" in html_text
+    assert "Spettro Vibrazioni Asse Z" in html_text

@@ -30,6 +30,8 @@ public:
 
     bool write_imu(const slab_imu_rec_t &rec);
     bool write_gps(const slab_gps_rec_t &rec);
+    bool write_can(const slab_can_rec_t &rec);
+    bool write_health(const slab_health_rec_t &rec);
 
     // Flushes buffered data, writes footer `"END!"` + payload CRC32, patches
     // header record_count + header CRC32, calls fsync(), and closes the file.
@@ -39,12 +41,18 @@ public:
     uint32_t record_count() const { return record_count_; }
 
 private:
+    static constexpr size_t kBlockBufSize = 4096;
+
     bool write_record(uint8_t rec_type, const void *payload, uint8_t len);
+    bool write_buffered(const uint8_t *data, size_t len);
+    bool flush_buffer();
 
     FILE *fp_ = nullptr;
     slab_header_t header_{};
     uint32_t record_count_ = 0;
     uint32_t payload_crc_ = 0xFFFFFFFFu;
+    uint8_t buf_[kBlockBufSize]{};
+    size_t buf_pos_ = 0;
 };
 
 } // namespace scooterlab

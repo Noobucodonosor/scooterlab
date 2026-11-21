@@ -54,11 +54,44 @@ bool SlabWriter::open(const char *path,
 
     record_count_ = 0;
     payload_crc_ = 0xFFFFFFFFu;
+    buf_pos_ = 0;
 
     if (fwrite(&header_, sizeof(header_), 1, fp_) != 1) {
         fclose(fp_);
         fp_ = nullptr;
         return false;
+    }
+    return true;
+}
+
+bool SlabWriter::flush_buffer() {
+    if (fp_ == nullptr) {
+        return false;
+    }
+    if (buf_pos_ == 0) {
+        return true;
+    }
+    const size_t expected = buf_pos_;
+    const size_t written = fwrite(buf_, 1, expected, fp_);
+    buf_pos_ = 0;
+    return written == expected;
+}
+
+bool SlabWriter::write_buffered(const uint8_t *data, size_t len) {
+    size_t offset = 0;
+    while (offset < len) {
+        const size_t space = kBlockBufSize - buf_pos_;
+        const size_t chunk = (len - offset) < space ? (len - offset) : space;
+        memcpy(buf_ + buf_pos_, data + offset, chunk);
+        buf_pos_ += chunk;
+        offset += chunk;
+        if (buf_pos_ == kBlockBufSize) {
+            if (fwrite(buf_, 1, kBlockBufSize, fp_) != kBlockBufSize) {
+                buf_pos_ = 0;
+                return false;
+            }
+            buf_pos_ = 0;
+        }
     }
     return true;
 }
@@ -73,10 +106,10 @@ bool SlabWriter::write_record(uint8_t rec_type, const void *payload, uint8_t len
     rh.rec_len = len;
     rh.reserved = 0;
 
-    if (fwrite(&rh, sizeof(rh), 1, fp_) != 1) {
+    if (!write_buffered(reinterpret_cast<const uint8_t *>(&rh), sizeof(rh))) {
         return false;
     }
-    if (fwrite(payload, len, 1, fp_) != 1) {
+    if (!write_buffered(reinterpret_cast<const uint8_t *>(payload), len)) {
         return false;
     }
 
@@ -94,12 +127,25 @@ bool SlabWriter::write_gps(const slab_gps_rec_t &rec) {
     return write_record(SLAB_REC_GPS, &rec, sizeof(rec));
 }
 
+bool SlabWriter::write_can(const slab_can_rec_t &rec) {
+    return write_record(SLAB_REC_CAN, &rec, sizeof(rec));
+}
+
+bool SlabWriter::write_health(const slab_health_rec_t &rec) {
+    return write_record(SLAB_REC_HEALTH, &rec, sizeof(rec));
+}
+
 bool SlabWriter::close_safe() {
     if (fp_ == nullptr) {
         return false;
     }
 
     bool ok = true;
+
+    // 0. Flush 4 KB block buffer before appending footer
+    if (!flush_buffer()) {
+        ok = false;
+    }
 
     // 1. Append footer with finalized payload CRC32
     slab_footer_t footer{};
