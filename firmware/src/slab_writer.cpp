@@ -127,6 +127,14 @@ bool SlabWriter::write_gps(const slab_gps_rec_t &rec) {
     return write_record(SLAB_REC_GPS, &rec, sizeof(rec));
 }
 
+bool SlabWriter::write_can(const slab_can_rec_t &rec) {
+    return write_record(SLAB_REC_CAN, &rec, sizeof(rec));
+}
+
+bool SlabWriter::write_health(const slab_health_rec_t &rec) {
+    return write_record(SLAB_REC_HEALTH, &rec, sizeof(rec));
+}
+
 bool SlabWriter::close_safe() {
     if (fp_ == nullptr) {
         return false;

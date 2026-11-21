@@ -30,6 +30,8 @@ public:
 
     bool write_imu(const slab_imu_rec_t &rec);
     bool write_gps(const slab_gps_rec_t &rec);
+    bool write_can(const slab_can_rec_t &rec);
+    bool write_health(const slab_health_rec_t &rec);
 
     // Flushes buffered data, writes footer `"END!"` + payload CRC32, patches
     // header record_count + header CRC32, calls fsync(), and closes the file.
