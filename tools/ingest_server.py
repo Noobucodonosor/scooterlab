@@ -25,25 +25,35 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 from analyze import analyze_file, analyze_session_dict, compute_kpis
-from garage_store import FACTORY_SPECS, GARAGE_PROCEDURES, GarageStore
+from garage_store import (
+    ATLAS_PLATES,
+    FACTORY_SPECS,
+    GARAGE_PROCEDURES,
+    OEM_PARTS_CATALOG,
+    GarageStore,
+)
 from maintenance_tracker import compute_maintenance_schedule
 from make_test_session import generate_synthetic_session
 from mqtt_publisher import publish_uns_summary
 from slab_codec import read_slab_full
 
 SAFE_NAME_RE = re.compile(r"^[a-zA-Z0-9._-]{1,64}\.slab$")
+SAFE_ATLAS_RE = re.compile(r"^[a-z0-9_-]{1,64}\.png$")
+SAFE_MODEL_RE = re.compile(r"^[a-z0-9_.-]{1,64}\.glb$")
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MAX_JSON_BYTES = 64 * 1024
 READ_CHUNK_BYTES = 64 * 1024
 REQUEST_TIMEOUT_SEC = 15.0
 
 WEBAPP_DIR = Path(__file__).resolve().parent / "webapp"
+DEFAULT_ATLAS_DIR = Path(__file__).resolve().parent / "local_atlas"
+DEFAULT_MODELS_DIR = Path(__file__).resolve().parent / "local_models"
 STATIC_FILES: Dict[str, tuple[str, str]] = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/index.html": ("index.html", "text/html; charset=utf-8"),
     "/styles.css": ("styles.css", "text/css; charset=utf-8"),
     "/app.js": ("app.js", "application/javascript; charset=utf-8"),
-    "/scooter3d.js": ("scooter3d.js", "application/javascript; charset=utf-8"),
+    "/workshop_viewer.js": ("workshop_viewer.js", "application/javascript; charset=utf-8"),
 }
 
 
@@ -98,6 +108,8 @@ def make_handler(
     tls_enabled: bool = False,
 ):
     garage = store or GarageStore(sessions_dir.parent / "garage_state.json")
+    atlas_dir = Path(os.environ.get("SCOOTERLAB_ATLAS_DIR") or DEFAULT_ATLAS_DIR)
+    models_dir = Path(os.environ.get("SCOOTERLAB_MODELS_DIR") or DEFAULT_MODELS_DIR)
 
     class IngestHandler(BaseHTTPRequestHandler):
         def setup(self) -> None:
@@ -149,6 +161,10 @@ def make_handler(
             state = garage.load()
             odom = float(state.get("odometer_km", 29271.0))
             schedule = [asdict(m) for m in compute_maintenance_schedule(odom)]
+            plates = [
+                {**p, "available": (atlas_dir / p["filename"]).exists()}
+                for p in ATLAS_PLATES
+            ]
             return {
                 "odometer_km": odom,
                 "baseline_session": state.get("baseline_session"),
@@ -158,6 +174,9 @@ def make_handler(
                 "factory_checks": state.get("factory_checks", {}),
                 "procedures": GARAGE_PROCEDURES,
                 "procedure_progress": state.get("procedure_progress", {}),
+                "atlas_plates": plates,
+                "oem_parts": OEM_PARTS_CATALOG,
+                "has_custom_glb": (models_dir / "symphony.glb").exists(),
                 "sessions": _list_sessions_summary(sessions_dir),
                 "server_info": {
                     "tls_enabled": tls_enabled,
@@ -256,6 +275,30 @@ def make_handler(
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "webapp_missing"})
                 return
 
+            if path.startswith("/local_atlas/"):
+                fname = path[len("/local_atlas/") :]
+                if not SAFE_ATLAS_RE.match(fname):
+                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_atlas_name"})
+                    return
+                target = atlas_dir / fname
+                if target.exists():
+                    self._send_bytes(HTTPStatus.OK, "image/png", target.read_bytes())
+                    return
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": "atlas_plate_not_extracted"})
+                return
+
+            if path.startswith("/local_models/"):
+                fname = path[len("/local_models/") :]
+                if not SAFE_MODEL_RE.match(fname):
+                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_model_name"})
+                    return
+                target = models_dir / fname
+                if target.exists():
+                    self._send_bytes(HTTPStatus.OK, "model/gltf-binary", target.read_bytes())
+                    return
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": "model_not_found"})
+                return
+
             if path.startswith("/api/"):
                 if not self._is_api_allowed():
                     self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
@@ -325,6 +368,26 @@ def make_handler(
                     result = self._ingest_slab_stream(filename, recover=recover)
                     if result is not None:
                         self._send_json(HTTPStatus.OK, result)
+                    return
+
+                if path == "/api/models/upload":
+                    raw_len = self.headers.get("Content-Length", "0")
+                    try:
+                        length = int(raw_len)
+                    except ValueError:
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_content_length"})
+                        return
+                    if length <= 12 or length > MAX_UPLOAD_BYTES:
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_content_length"})
+                        return
+                    data = self.rfile.read(length)
+                    if len(data) != length or not data.startswith(b"glTF"):
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_glb_header"})
+                        return
+                    models_dir.mkdir(parents=True, exist_ok=True)
+                    dest = models_dir / "symphony.glb"
+                    dest.write_bytes(data)
+                    self._send_json(HTTPStatus.OK, {"status": "ok", "model": dest.name, "size_bytes": len(data)})
                     return
 
                 if path == "/api/sessions/demo":

@@ -25,9 +25,10 @@ Dopo il completamento della pipeline binaria `.slab` v1 (`ADR-0004`/`0007`) e de
    - Design system coerente **`stone-blueprint`** (`#dfdedb` / `#26251e` / `#2456d6`), ergonomia mobile con tap target ≥ 44 px.
 2. **Motore Officina & Stato Locale (`tools/garage_store.py` → `tools/garage_state.json`):**
    - File JSON locale **sempre escluso da Git** (`.gitignore`) per salvare odometro cumulato, registro tagliandi eseguiti, misure verificate contro `FACTORY_SPECS` (`[TUO]`/`[XB20]`/`[FAM]`), avanzamento step delle procedure guidate e baseline A/B selezionata.
-3. **Digital Twin 3D Parametrico Offline (`tools/webapp/scooter3d.js`):**
-   - Motore 3D prospettico Canvas 2D in puro JavaScript costruito sulle dimensioni reali verificate del SYM Symphony ST 200i (passo 1350 mm, lunghezza 2000 mm, ruote 16", altezza sella 792 mm), con orbita 360° mouse/touch, zoom, modalità **Raggi-X** e focus automatico (`focusPart`) dal passo attivo della guida al relativo sottosistema (cestello sottosella, batteria/fusibili, centralina ScooterLab IP65, testa/valvole/candela, carter CVT, scudo/OBD, ruote/anelli ABS 50 fori).
-   - Trasparenza ingegneristica: dichiarato esplicitamente come modello parametrico tecnico e non mesh CAD millimetrica delle plastiche OEM.
+3. **Atlante Esplosi Ufficiali SYM, Ricambi OEM & Slot 3D Reale (`.glb`):**
+   - Rimozione totale di geometrie placeholder a cubi a favore di un doppio visualizzatore (`tools/webapp/workshop_viewer.js`):
+     1. **Atlante Esplosi Ufficiali SYM:** estrattore locale `tools/extract_atlas.py` (`pdftoppm` da `manuals/` verso `tools/local_atlas/`, sempre esclusa da `.gitignore` per copyright) con 10 tavole ad alta risoluzione sincronizzate automaticamente su ogni step operativo + catalogo `OEM_PARTS_CATALOG` cliccabile con link microfiche EasyParts.
+     2. **Slot Modello 3D Reale (`.glb`):** caricamento locale in `tools/local_models/symphony.glb` (escluso da `.gitignore`) per scansioni 3D reali dello scooter (Polycam / Scaniverse) renderizzate offline in puro JS senza CDN.
 4. **Mappa GPS Vettoriale Offline & Privacy Zone:**
    - Rendering SVG relativo locale (nessun tile server esterno) con toggle **Privacy Zone 300 m** che taglia partenza e arrivo intorno al garage.
 
@@ -42,4 +43,5 @@ Dopo il completamento della pipeline binaria `.slab` v1 (`ADR-0004`/`0007`) e de
 
 ## 4. Task Operativi Collegati
 
-- [x] **TASK-APP-01** (`#21`): Creazione `tools/garage_store.py`, API `/api/*` in `ingest_server.py`, `analyze_session_dict` + `report.html` `stone-blueprint`, e Web App `tools/webapp/` con Digital Twin 3D offline.
+- [x] **TASK-APP-01** (`#21`): Creazione `tools/garage_store.py`, API `/api/*` in `ingest_server.py`, `analyze_session_dict` + `report.html` `stone-blueprint`, e Web App `tools/webapp/`.
+- [x] **TASK-APP-02** (`#24`): Sostituzione placeholder cubi con Atlante Esplosi Ufficiali SYM (`tools/extract_atlas.py`), Catalogo Ricambi OEM e slot `.glb` reale (`tools/webapp/workshop_viewer.js`).

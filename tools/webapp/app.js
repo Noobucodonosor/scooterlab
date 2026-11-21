@@ -1,9 +1,10 @@
-import { Scooter3DViewer } from "/scooter3d.js";
+import { WorkshopViewer } from "/workshop_viewer.js";
 
 const state = {
   overview: null,
   activeProcId: "service_30k",
   activeStepIdx: 0,
+  activePart: "underseat_tub",
   currentSession: null,
   token: sessionStorage.getItem("scooterlab_token") || "",
 };
@@ -37,35 +38,116 @@ async function apiFetch(url, opts = {}) {
   return data;
 }
 
-// --- 3D Viewer Setup ---
-const viewer = new Scooter3DViewer(document.getElementById("scooter-canvas"), (partId) => {
-  highlightPartChip(partId);
+// --- Workshop Atlas & GLB Viewer Setup ---
+const viewer = new WorkshopViewer({
+  atlasViewport: document.getElementById("atlas-viewport"),
+  atlasImg: document.getElementById("atlas-img"),
+  glbCanvas: document.getElementById("glb-canvas"),
+  onSelectPart: (partId) => {
+    state.activePart = partId;
+    renderOemParts();
+  },
+  onSelectPlate: (plate) => {
+    document.getElementById("active-part-label").textContent = `${plate.source_tag} ${plate.source_pdf} · p.${plate.page}`;
+    document.getElementById("plate-meta").textContent = plate.description;
+    document.getElementById("atlas-missing").style.display = plate.available ? "none" : "block";
+    document.getElementById("atlas-img").style.display = plate.available ? "block" : "none";
+    highlightPlateChips(plate.id);
+  },
 });
 
-function highlightPartChip(partId) {
+function highlightPlateChips(plateId) {
   document.querySelectorAll("#part-chips .chip").forEach((el) => {
-    el.classList.toggle("is-active", el.dataset.part === partId);
+    el.classList.toggle("is-active", el.dataset.plate === plateId);
   });
-  const meta = viewer.partsMeta[partId];
-  if (meta) {
-    document.getElementById("active-part-label").textContent = meta.label;
-  }
 }
 
-function renderPartChips() {
+function renderPlateChips() {
+  const plates = state.overview?.atlas_plates || [];
   const wrap = document.getElementById("part-chips");
-  wrap.innerHTML = Object.entries(viewer.partsMeta)
+  wrap.innerHTML = plates
     .map(
-      ([id, meta]) =>
-        `<button class="chip ${id === viewer.activePart ? "is-active" : ""}" data-part="${esc(id)}" type="button">${esc(meta.label)}</button>`
+      (p) =>
+        `<button class="chip ${viewer.activePlate?.id === p.id ? "is-active" : ""}" data-plate="${esc(p.id)}" type="button">${esc(p.title)}</button>`
     )
     .join("");
   wrap.querySelectorAll("button").forEach((btn) => {
     btn.addEventListener("click", () => {
-      viewer.focusPart(btn.dataset.part);
-      highlightPartChip(btn.dataset.part);
+      switchViewerMode("atlas");
+      viewer.selectPlateById(btn.dataset.plate);
     });
   });
+}
+
+function renderOemParts() {
+  const catalog = state.overview?.oem_parts || [];
+  const showAll = document.getElementById("oem-all-toggle").checked;
+  const query = (document.getElementById("oem-search").value || "").trim().toLowerCase();
+
+  const filtered = catalog.filter((item) => {
+    if (!showAll && !query && item.focus_part !== state.activePart) return false;
+    if (query) {
+      const hay = `${item.code} ${item.name} ${item.equivalent} ${item.spec}`.toLowerCase();
+      return hay.includes(query);
+    }
+    return true;
+  });
+
+  const list = document.getElementById("oem-list");
+  if (!filtered.length) {
+    list.innerHTML = `<div class="muted">Nessun ricambio specifico per questa vista. Spunta <strong>Mostra tutti</strong> per l'intero catalogo SYM.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered
+    .map(
+      (item) => `
+      <div class="oem-item">
+        <div style="flex:1 1 260px;">
+          <div><code class="badge mono">${esc(item.code)}</code> <strong>${esc(item.name)}</strong> <span class="badge mono">${esc(item.source)}</span></div>
+          <div class="muted" style="margin-top:4px;">Equiv: ${esc(item.equivalent)} · ${esc(item.spec)}</div>
+        </div>
+        <div class="control-group">
+          <button class="btn btn--sm js-copy-code" data-code="${esc(item.code)}" type="button">Copia codice</button>
+          <a class="btn btn--sm btn--primary" href="${esc(item.microfiche_url)}" target="_blank" rel="noopener">Esploso Microfiche</a>
+        </div>
+      </div>`
+    )
+    .join("");
+
+  list.querySelectorAll(".js-copy-code").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.code);
+        showToast(`Copiato codice OEM: ${btn.dataset.code}`);
+      } catch {
+        showToast(`Codice: ${btn.dataset.code}`);
+      }
+    });
+  });
+}
+
+function switchViewerMode(mode) {
+  const isGlb = mode === "glb";
+  document.getElementById("mode-atlas").classList.toggle("btn--primary", !isGlb);
+  document.getElementById("mode-glb").classList.toggle("btn--primary", isGlb);
+
+  const atlasVp = document.getElementById("atlas-viewport");
+  const glbCanvas = document.getElementById("glb-canvas");
+  const glbEmpty = document.getElementById("glb-empty");
+
+  if (!isGlb) {
+    atlasVp.style.display = "flex";
+    glbCanvas.style.display = "none";
+    glbEmpty.style.display = "none";
+    viewer.setMode("atlas");
+  } else {
+    atlasVp.style.display = "none";
+    const hasGlb = Boolean(state.overview?.has_custom_glb);
+    glbCanvas.style.display = hasGlb ? "block" : "none";
+    glbEmpty.style.display = hasGlb ? "none" : "block";
+    viewer.setMode("glb");
+  }
 }
 
 // --- Tabs Navigation ---
@@ -77,7 +159,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
-// --- Procedures & Guided 3D Sync ---
+// --- Procedures & Guided Atlas Sync ---
 function renderProcedures() {
   if (!state.overview) return;
   const procs = state.overview.procedures || [];
@@ -110,7 +192,6 @@ function renderProcedures() {
   const selectedStep = activeProc.steps[state.activeStepIdx] || activeProc.steps[0];
   if (selectedStep && selectedStep.focus_part) {
     viewer.focusPart(selectedStep.focus_part);
-    highlightPartChip(selectedStep.focus_part);
   }
 
   stepsEl.innerHTML = activeProc.steps
@@ -257,7 +338,6 @@ function renderTelemetryData(d) {
     <div class="kpi-card"><div class="kpi-card__k">Vibrazione / Regolatore</div><div class="kpi-card__v">${k.dominant_vib_hz} Hz · ${esc(regStr)}</div></div>
   `;
 
-  // Speed SVG
   const sp = d.speed_series || [];
   const sSvg = document.getElementById("svg-speed");
   if (sp.length >= 2) {
@@ -273,7 +353,6 @@ function renderTelemetryData(d) {
     sSvg.innerHTML = `<text x="20" y="110" fill="#9e9d99" font-size="13">Dati GPS insufficienti (fix >= 2 richiesto).</text>`;
   }
 
-  // FFT SVG
   const fft = d.spectrum_series || [];
   const fSvg = document.getElementById("svg-fft");
   if (fft.length >= 2) {
@@ -289,7 +368,6 @@ function renderTelemetryData(d) {
     fSvg.innerHTML = `<text x="20" y="110" fill="#9e9d99" font-size="13">Dati IMU insufficienti per FFT.</text>`;
   }
 
-  // Offline Track SVG
   const tr = d.gps_track || [];
   const tSvg = document.getElementById("svg-track");
   if (tr.length >= 2) {
@@ -391,9 +469,12 @@ function renderDeviceInfo() {
   if (!state.overview) return;
   const info = state.overview.server_info || {};
   const sessions = state.overview.sessions || [];
+  const platesAvail = (state.overview.atlas_plates || []).filter((p) => p.available).length;
+  const platesTotal = (state.overview.atlas_plates || []).length;
   document.getElementById("device-status").innerHTML = `
     <div><span class="badge ${info.tls_enabled ? "badge--ok" : "badge--warn"}">HTTPS TLS: ${info.tls_enabled ? "ATTIVO" : "Locale HTTP (usa gen_local_tls.sh)"}</span></div>
     <div><span class="badge ${info.mqtt_enabled ? "badge--ok" : ""}">MQTT / Mini-UNS: ${info.mqtt_enabled ? "ATTIVO" : "Opzionale (off)"}</span></div>
+    <div><span class="badge ${platesAvail === platesTotal ? "badge--ok" : "badge--warn"}">Tavole Esplose SYM: ${platesAvail} / ${platesTotal} estratte</span></div>
     <div class="mono muted">Sessioni archiviate: ${sessions.length} · Odometro corrente: ${state.overview.odometer_km} km</div>
   `;
 }
@@ -404,8 +485,10 @@ async function refreshOverview() {
     state.overview = await apiFetch("/api/overview");
     document.getElementById("odom-input").value = state.overview.odometer_km;
     document.getElementById("maint-km").value = state.overview.odometer_km;
-    renderPartChips();
+    viewer.setCatalog(state.overview.atlas_plates || [], state.overview.has_custom_glb);
+    renderPlateChips();
     renderProcedures();
+    renderOemParts();
     renderSessionSelectors();
     renderCheckupAndMaintenance();
     renderDeviceInfo();
@@ -457,13 +540,30 @@ document.getElementById("maint-form").addEventListener("submit", async (e) => {
   }
 });
 
-document.getElementById("btn-xray").addEventListener("click", (e) => {
-  viewer.setXRay(!viewer.xray);
-  e.target.textContent = `Raggi-X: ${viewer.xray ? "ON" : "OFF"}`;
-});
-document.getElementById("btn-zoom-in").addEventListener("click", () => viewer.zoomBy(0.16));
-document.getElementById("btn-zoom-out").addEventListener("click", () => viewer.zoomBy(-0.16));
+document.getElementById("mode-atlas").addEventListener("click", () => switchViewerMode("atlas"));
+document.getElementById("mode-glb").addEventListener("click", () => switchViewerMode("glb"));
+document.getElementById("btn-zoom-in").addEventListener("click", () => viewer.zoomBy(0.35));
+document.getElementById("btn-zoom-out").addEventListener("click", () => viewer.zoomBy(-0.35));
 document.getElementById("btn-reset3d").addEventListener("click", () => viewer.resetView());
+
+document.getElementById("oem-search").addEventListener("input", renderOemParts);
+document.getElementById("oem-all-toggle").addEventListener("change", renderOemParts);
+
+document.getElementById("glb-file-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const headers = { "Content-Type": "application/octet-stream" };
+  if (state.token) headers["Authorization"] = `Bearer ${state.token}`;
+  const resp = await fetch("/api/models/upload", { method: "POST", headers, body: file });
+  const data = await resp.json();
+  if (!resp.ok) {
+    showToast(`Errore .glb: ${data.error}`);
+    return;
+  }
+  showToast("Modello 3D .glb caricato in locale");
+  await refreshOverview();
+  switchViewerMode("glb");
+});
 
 document.getElementById("sess-select").addEventListener("change", loadSessionDetail);
 document.getElementById("base-select").addEventListener("change", async (e) => {
