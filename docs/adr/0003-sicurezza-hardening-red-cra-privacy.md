@@ -55,15 +55,15 @@ Le istruzioni originali di Livello 0 ([`docs/01-istruzioni-montaggio-livello-0.m
 
 ## 4. Task Operativi Collegati (con Definition of Done)
 
-- [ ] **TASK-SEC-01**: **Configurazione `.gitignore`, `.env.example` e pre-release secret check**
+- [x] **TASK-SEC-01**: **Configurazione `.gitignore`, `.env.example` e pre-release secret check**
   - *File coinvolti*: `.gitignore`, `.env.example`, `AGENTS.md`
   - *Acceptance Criteria*: Tutti i pattern sensibili (`*.slab`, `*.gps.csv`, `secrets.h`, `.env`, `*.key`) sono esclusi da Git; lo script `pre_release_check.py` passa senza errori.
   - *Verification Step*: `python3 ~/.gemini/config/skills/adr-github-methodology/scripts/pre_release_check.py`
-- [ ] **TASK-SEC-02**: **Provisioning sicuro Wi-Fi/Token con NVS cifrata nel firmware**
+- [x] **TASK-SEC-02**: **Provisioning sicuro Wi-Fi/Token con NVS cifrata nel firmware**
   - *File coinvolti*: `firmware/src/config_nvs.cpp`, `firmware/partitions.csv`
   - *Acceptance Criteria*: Nessuna credenziale hardcoded nel repository; il firmware carica SSID/PASS e Bearer Token da partizione NVS cifrata.
   - *Verification Step*: Scansione grep sul codice sorgente (`git grep -i "HOME_PASS"`) con 0 corrispondenze reali e test di connessione Wi-Fi a banco.
-- [ ] **TASK-SEC-03**: **Endpoint di ingestione HTTPS/TLS con autenticazione Bearer Token**
+- [x] **TASK-SEC-03**: **Endpoint di ingestione HTTPS/TLS con autenticazione Bearer Token**
   - *File coinvolti*: `tools/ingest_server.py`, `firmware/src/uploader.cpp`
   - *Acceptance Criteria*: Il server rifiuta connessioni prive di token valido (`401 Unauthorized`) e accetta upload solo su TLS (o dietro reverse proxy TLS / mesh Tailscale-NetBird).
   - *Verification Step*: Test `curl` senza token → `401`; test `curl` con token valido e file `.slab` sintetico → `200 OK`.

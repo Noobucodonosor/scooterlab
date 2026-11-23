@@ -54,15 +54,15 @@ Si adotta una **pipeline modulare a due velocità (Offline-First + Bridge UNS/Au
 
 ## 4. Task Operativi Collegati (con Definition of Done)
 
-- [ ] **TASK-DATA-01**: **Specifica formato binario `.slab` v1 e generatore sintetico**
+- [x] **TASK-DATA-01**: **Specifica formato binario `.slab` v1 e generatore sintetico**
   - *File coinvolti*: `docs/04-formato-slab.md`, `tools/pyproject.toml`, `tools/make_test_session.py`
   - *Acceptance Criteria*: Specifica binaria documentata (header + record IMU/GPS + CRC32); `make_test_session.py --level0` genera un file `.slab` valido e deterministico in un virtualenv isolato.
   - *Verification Step*: `python3 tools/make_test_session.py --level0 && pytest tools/tests/`
-- [ ] **TASK-DATA-02**: **Parser telemetria `analyze.py` con report HTML e confronto A/B**
+- [x] **TASK-DATA-02**: **Parser telemetria `analyze.py` con report HTML e confronto A/B**
   - *File coinvolti*: `tools/analyze.py`, `tools/templates/report.html`
   - *Acceptance Criteria*: Estrae velocità, 0–50 km/h, angolo di piega, comfort e spettro vibrazioni da `.slab`; supporta flag `--baseline` per confronto A/B.
   - *Verification Step*: `python3 tools/analyze.py sessions/sess00002.slab --label "prova"` genera un report HTML valido senza errori.
-- [ ] **TASK-DATA-03**: **Integrazione opzionale MQTT/UNS & scadenziario manutenzione SYM**
+- [x] **TASK-DATA-03**: **Integrazione opzionale MQTT/UNS & scadenziario manutenzione SYM**
   - *File coinvolti*: `tools/maintenance_tracker.py`, `tools/mqtt_publisher.py`
   - *Acceptance Criteria*: Pubblica riepilogo KPI (privo di coordinate GPS raw) su topic `scooterlab/symphony200/...` e calcola i km residui ai tagliandi SYM (`3k / 6k / 10k / 12k km`).
   - *Verification Step*: Unit test del calcolo scadenze manutenzione a partire da un chilometraggio iniziale configurabile.

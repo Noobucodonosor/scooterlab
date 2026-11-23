@@ -57,15 +57,15 @@ Si definisce lo **Stack Hardware Target 2026 (Rev. 2)** mantenendo invariato il 
 
 ## 4. Task Operativi Collegati (con Definition of Done)
 
-- [ ] **TASK-HW-01**: **Aggiornamento BOM Rev. 2 e pinout SPI/UART/TWAI**
+- [x] **TASK-HW-01**: **Aggiornamento BOM Rev. 2 e pinout SPI/UART/TWAI**
   - *File coinvolti*: `docs/01-istruzioni-montaggio-livello-0.md`, `docs/bom-rev2-2026.md`
   - *Acceptance Criteria*: BOM completa con codici esatti per MCU (ESP32-S3 o ESP32-C5), Smart IMU industriale (`ISM330IS` o `BHI360`), GNSS 10 Hz, microSD High Endurance, buck DC-DC e connettori JST; tabella pinout priva di conflitti SPI/UART/TWAI.
   - *Verification Step*: Revisione incrociata pinout su datasheet Espressif e verifica assenza di pin di strapping critici.
-- [ ] **TASK-HW-02**: **Scaffold progetto firmware ESP-IDF v6.x / PlatformIO**
+- [x] **TASK-HW-02**: **Scaffold progetto firmware ESP-IDF v6.x / PlatformIO**
   - *File coinvolti*: `firmware/platformio.ini` (o `firmware/CMakeLists.txt`), `firmware/src/main.cpp`
   - *Acceptance Criteria*: Progetto compilabile in locale per ESP32-S3/C5 con driver modulari per IMU SPI, GNSS UART e microSD FAT32 + flag `BUILD_LEVEL` (0/1/2).
   - *Verification Step*: Compilazione pulita (`pio run` o `idf.py build`) con 0 errori e 0 warning critici.
-- [ ] **TASK-HW-03**: **Protezione chiusura file microSD su spegnimento quadro**
+- [x] **TASK-HW-03**: **Protezione chiusura file microSD su spegnimento quadro**
   - *File coinvolti*: `docs/01-istruzioni-montaggio-livello-0.md`, `firmware/src/power_monitor.cpp`
   - *Acceptance Criteria*: Circuito di rilevamento caduta tensione 12 V sottochiave (partitore + diodo Schottky + condensatore di hold-up) che garantisce ≥200 ms di autonomia per `fsync()` e chiusura pulita del file `.slab`.
   - *Verification Step*: Test a banco con 10 spegnimenti bruschi consecutivi senza corruzione del filesystem FAT32.
