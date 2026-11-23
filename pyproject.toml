@@ -1,0 +1,15 @@
+[project]
+name = "scooterlab"
+version = "0.2.0"
+description = "ScooterLab — Non-invasive Level 0 IoT telemetry pipeline (.slab binary codec, analyzer, MQTT UNS, ESP32-S3/C5)."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tools/tests"]
+pythonpath = ["tools"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
